@@ -1,6 +1,106 @@
 #!/bin/bash
 
+############################################################
+## C O N S T A N T S #######################################
+############################################################
+ZOOKEEPER="zk"
+KAFKA="kafka"
+HADOOP="spark_hadoop"
+
+SCRIPT=$0
+# Routine below facilitates the full qualified paths
+if [ "`echo $0 | cut -c1`" = "." ]; then
+   SCRIPT="`pwd`/`echo "$0" | sed 's/\.\///g'`"
+elif [ "`echo $0 | cut -c1`" != "/" ]; then
+   SCRIPT="`pwd`/$0"
+fi
+
+BIN_DIR=`dirname $SCRIPT`
+PROG_DNAME=`basename $SCRIPT`
+PROG_NAME=`echo $PROG_DNAME | sed s/.$//`
+PROG_HOME=`dirname $BIN_DIR`
+
+LOG_DIR=${PROG_HOME}/log
+CONSOLE_LOG=${LOG_DIR}/${PROG_DNAME}.log
+VAR_DIR=${PROG_HOME}/var
+PIDFILE=${VAR_DIR}/${PROG_NAME}.pid
+
+if [ ! -d "${LOG_DIR}" ]; then
+  mkdir -p ${LOG_DIR}
+  if [ "$?" != 0 ]; then
+    log ERROR "GYMPB0100E: Create directory $LOG_DIR failed!  Check permissions on parent directory."
+    exit 1
+  fi
+fi
+
+if [ ! -d "${VAR_DIR}" ]; then
+  mkdir -p ${VAR_DIR}
+  if [ "$?" != 0 ]; then
+    log ERROR "GYMPB0101E: Create directory $VAR_DIR failed! Check permissions on parent directory."
+    exit 1
+  fi
+fi
+
+############################################################
+## E X I S T I N G # F U N C T I O N S #####################
+############################################################
+log()
+{
+  severity=$1
+  shift
+  timestamp=`date "+%Y-%m-%d %H:%M:%S.%N"|cut -b1-23`
+  echo "[${severity}] [${timestamp}] [npid] $@" | tee -a ${CONSOLE_LOG}
+}
+
+############################################################
+## N E W # F U N C T I O N S ###############################
+############################################################
+writePID() 
+{
+	if [ $# -eq 2 ]
+	then
+		echo $1 $2 >> ${PIDFILE}
+	else
+		log ERROR "GYMPB0000E: Not enough arguments to write into PID file."
+		exit 1
+	fi
+}
+
+# Re-using existing bootstraps from docker
+DOCKER_DIR=${PROG_HOME}/docker
+BOOTSTRAP="bootstrap.sh"
+ENV_FILE="npi_env.sh"
+SH_SHELL=`which sh`
+
+SERVICES_DIR=${PROG_HOME}/services
+
+# Is this the right way ???
+export NPI_HOME=${PROG_HOME}
+
+# Due to /bin/sh of boostrap.sh, shall we ignore "bad trap" ???
+# Use /bin/sh to invoke instead ???
+
+# Assuming after user has modified this file
+${SH_SHELL} ${DOCKER_DIR}/${ENV_FILE}
+
 echo "Start Zookeeper"
+ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER}.log
+${SH_SHELL} ${DOCKER_DIR}/${ZOOKEEPER}/${BOOTSTRAP} >>${ZOOKEEPER_LOG} 2>>${ZOOKEEPER_LOG} & # Everything into log file
+writePID ${ZOOKEEPER} ${!}
+
+# Check for log message before proceed ??? For each framework processes
+
 echo "Start Kafka"
+KAFKA_LOG=${LOG_DIR}/${KAFKA}.log
+${SH_SHELL} ${DOCKER_DIR}/${KAFKA}/${BOOTSTRAP} >>${KAFKA_LOG} 2>>${KAFKA_LOG} &
+writePID ${KAFKA} ${!}
+
 echo "Start Hadoop"
+export HADOOP_PREFIX=${SERVICES_DIR}/hadoop # Ideally this should come from where ???
+HADOOP_LOG=${LOG_DIR}/${HADOOP}.log
+/bin/bash ${DOCKER_DIR}/${HADOOP}/${BOOTSTRAP} >>${HADOOP_LOG} 2>>${HADOOP_LOG} & # Need /bin/bash instead of /bin/sh ???
+writePID ${KAFKA} ${!}
+
 echo "Start NPI with Options"
+
+exit 0
