@@ -48,6 +48,7 @@ LOG_DIR=${PROG_HOME}/log
 CONSOLE_LOG=${LOG_DIR}/${PROG_DNAME}.log
 VAR_DIR=${PROG_HOME}/var
 PIDFILE=${VAR_DIR}/${PROG_NAME}.pid
+PIDFILE2=${VAR_DIR}/frameworks.pid # temporary only
 
 if [ ! -d "${LOG_DIR}" ]; then
   mkdir -p ${LOG_DIR}
@@ -76,6 +77,103 @@ log()
   echo "[${severity}] [${timestamp}] [npid] $@" | tee -a ${CONSOLE_LOG}
 }
 
+# check ulimit parameters
+check_ulimit_param() {
+  parameter=$1
+  name=$2
+  minvalue=$3
+  currentulimitvalue=`ulimit ${parameter}`
+  if [ ${currentulimitvalue} -lt ${minvalue} ]; then
+     #attempt to set ulimit
+     local sout
+     sout=$(ulimit -S ${parameter} ${minvalue} 2>&1)
+     if [ "$?" != 0 ]; then
+        log WARN "GYMPB0103W: ulimit parameter ${parameter} (${name}) is less than minimum value ${minvalue}! Fix by adding two lines to /etc/security/limits.conf: \"${USER} hard nofile ${minvalue}\" and \"${USER} soft nofile ${minvalue}\" and then log out the ${USER} user and log back in for the changes to take effect."
+        log WARN "GYMPB0104W: Standard error from ulimit command is \"${sout}\""
+     fi
+  fi
+}
+
+# test UDP tuning parameters
+check_sysctl_param() {
+  parameter=$1
+  minvalue=$2
+  currentvalue=`/sbin/sysctl ${parameter} | awk -F'= ' '{print $2}'`
+  if [ ${currentvalue} -lt ${minvalue} ]; then
+    if [ "${ROOT}" = "YES" ]; then
+       sysctl ${parameter}=${minvalue}
+    else
+       log ERROR "GYMPB0105E: sysctl parameter ${parameter}=${currentvalue} is less than required value ${minvalue}! Fix by adding \"${parameter}=${minvalue}\" to /etc/sysctl.conf and running sysctl -p as root. Alternatively, run ${PROG_NAME} as root."
+       ERRORS=$(($ERRORS + 1))
+    fi
+  fi
+}
+
+check_parameters() {
+  ERRORS=0
+  # check if root
+  if [ "${USER}" = "root" ]; then ROOT=YES; fi
+
+  if [ "${IGNORESYSCHECK}" != "Y" ]; then
+    check_ulimit_param "-n" "open files" 8096
+    check_sysctl_param net.core.rmem_default 33554432
+    check_sysctl_param net.core.rmem_max 33554432
+    check_sysctl_param net.core.netdev_max_backlog 10000
+    if [ "${ERRORS}" != "0" ]; then
+      log ERROR "GYMPB0106E: Another kernel parameter error is fatal. Exiting. Check ${CONSOLE_LOG} for GYMPB0105E errors."
+      exit 1
+    fi
+  fi
+}
+
+getPID() {
+  FILEPID=`readPIDFile`
+  PSPID=`findPID`
+  ARG=$1
+  if [ "$ARG" = "pidfile" ]; then
+    RETURNPID=$FILEPID
+  elif [ "$ARG" = "ps" ]; then
+    RETURNPID=$PSPID
+  else #return both
+    RETURNPID=`echo -e "${FILEPID}\n${PSPID}" | sort | uniq | xargs`
+  fi
+  echo $RETURNPID
+}
+
+readPIDFile() {
+  if [ -f "${PIDFILE}" ]; then
+    FILEPID=`cat ${PIDFILE}`
+  fi
+  echo $FILEPID
+}
+
+findPID() {
+  PSPID=`ps -eaf | grep -v grep | grep Dprog.name=${PROG_NAME} | awk '{print $2}' | xargs`
+  echo $PSPID
+}
+
+startApplication()
+{
+  # check_parameters # to avoid annoying errors during development
+  CHECK_PID=`getPID`
+  if [ "${CHECK_PID}" != "" ]; then
+    log ERROR "GYMPB0107E: Application $PROG_NAME is already running! (PID: $CHECK_PID)"
+    exit 1
+  fi
+  cd ${PROG_HOME} 
+  # bin/${PROG_NAME} $@ >/dev/null 2>>${CONSOLE_LOG} &
+  bin/${PROG_NAME} $@ >>${CONSOLE_LOG} 2>>${CONSOLE_LOG} & # greedy logging
+  PROG_PID=$!
+  echo $PROG_PID > ${PIDFILE}
+  sleep 5
+  CHECK_PID=`getPID pidfile`
+  if [ "${CHECK_PID}" = "" ]; then
+    log ERROR "GYMPB0108E: Application ${PROG_NAME} started but died!  Check ${CONSOLE_LOG} and ${PROG_HOME}/log/${PROG_NAME}.log for errors."
+    exit 1
+  fi
+  log INFO "GYMPB0109I: Application $PROG_NAME Version $PROG_VERSION started (PID: $PROG_PID)"
+}
+
 ############################################################
 ## N E W # F U N C T I O N S ###############################
 ############################################################
@@ -83,7 +181,7 @@ writePID()
 {
 	if [ $# -eq 2 ]
 	then
-		echo $1 $2 >> ${PIDFILE}
+		echo $1 $2 >> ${PIDFILE2}
 	else
 		log ERROR "GYMPB0000E: Not enough arguments to write into PID file."
 		exit 1
@@ -184,6 +282,8 @@ writePID ${HADOOP} ${!}
 checkHadoop
 echo "Started Hadoop"
 
-echo "Start NPI with Options"
+echo "Starting NPI with Options"
+startApplication # This might not be correct
+echo "Started NPI with Options"
 
 exit 0
