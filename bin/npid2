@@ -8,6 +8,8 @@
 ZOOKEEPER="zk"
 KAFKA="kafka"
 HADOOP="spark_hadoop"
+TRY_COUNT=5
+SLEEP_TIME=5
 
 SCRIPT=$0
 # Routine below facilitates the full qualified paths
@@ -21,6 +23,26 @@ BIN_DIR=`dirname $SCRIPT`
 PROG_DNAME=`basename $SCRIPT`
 PROG_NAME=`echo $PROG_DNAME | sed s/.$//`
 PROG_HOME=`dirname $BIN_DIR`
+
+############################################################
+## E N V # C O N D I T I O N I N G #########################
+############################################################
+# Re-using existing bootstraps from docker
+DOCKER_DIR=${PROG_HOME}/docker
+BOOTSTRAP="bootstrap.sh"
+ENV_FILE="npi_env.sh"
+
+
+# New environmental variables
+SH_SHELL=`which sh`
+BASH_SHELL=`which bash`
+SERVICES_DIR=${PROG_HOME}/services
+
+# New exports
+export NPI_HOME=${PROG_HOME}
+export NAMENODE=true
+export USER_CONFIG=false
+export HADOOP_PREFIX=${SERVICES_DIR}/hadoop
 
 LOG_DIR=${PROG_HOME}/log
 CONSOLE_LOG=${LOG_DIR}/${PROG_DNAME}.log
@@ -68,45 +90,99 @@ writePID()
 	fi
 }
 
-############################################################
-## E N V # C O N D I T I O N I N G #########################
-############################################################
-# Re-using existing bootstraps from docker
-DOCKER_DIR=${PROG_HOME}/docker
-BOOTSTRAP="bootstrap.sh"
-ENV_FILE="npi_env.sh"
+##
+## USAGE: checkZookeeper <CMD> <PATTERN>
+##
+checkZookeeper() {
+	tryCount=${TRY_COUNT}
+	isZookeeperUp=0
+	host=`echo ${ZOOKEEP_URL} | cut -d: -f1`
+	port=`echo ${ZOOKEEP_URL} | cut -d: -f2`
 
+	while [ ${tryCount} -ne 0 ]; do
+		ncResult=`echo ${1} | nc ${host} ${port} | grep ${2}`
+		if [ ! -z "${ncResult}" ]; then
+			isZookeeperUp=1
+			break			
+		fi
+		sleep ${SLEEP_TIME}
+		tryCount=$(( ${tryCount} - 1 ))
+	done
 
-# New environmental variables
-SH_SHELL=`which sh`
-BASH_SHELL=`which bash`
-SERVICES_DIR=${PROG_HOME}/services
+	if [ ${isZookeeperUp} -eq 0 ]; then
+		log ERROR "GYMPB0000E: Zookeeper / Kafka is not starting."
+		exit 1
+	fi
+}
 
-# New exports
-export NPI_HOME=${PROG_HOME}
-export NAMENODE=true
-export USER_CONFIG=false
-export HADOOP_PREFIX=${SERVICES_DIR}/hadoop
+##
+## There are initial errors not able surpress by this script ***
+##
+checkHadoop() {
+	isHadoopUp=0
+	tryCount=${TRY_COUNT}
+	cmd="${HADOOP_PREFIX}/bin/hdfs dfsadmin -report"
+	
+	while [ ${tryCount} -ne 0 ]; do
+		dfsAdminResult=`${cmd}`
+		if [ ! -z "${dfsAdminResult}" ]; then
+			isHadoopUp=1
+			break			
+		fi
+		sleep ${SLEEP_TIME}
+		tryCount=$(( ${tryCount} - 1 ))
+	done
+
+	if [ ${isHadoopUp} -eq 0 ]; then
+		log ERROR "GYMPB0000E: Hadoop is not starting."
+		exit 1
+	fi
+	
+	isHadoopUp=0
+	tryCount=${TRY_COUNT}
+	cmd="${HADOOP_PREFIX}/bin/hdfs dfs -ls ${HADOOP_NAMENODE_URL}"
+
+	while [ ${tryCount} -ne 0 ]; do
+		dfsResult=`${cmd} | grep "work"`
+		if [ ! -z "${dfsResult}" ]; then
+			isHadoopUp=1
+			break			
+		fi
+		sleep ${SLEEP_TIME}
+		tryCount=$(( ${tryCount} - 1 ))
+	done
+
+	if [ ${isHadoopUp} -eq 0 ]; then
+		log ERROR "GYMPB0000E: Hadoop is not starting."
+		exit 1
+	fi
+}
 
 # Assuming USERS has modified this file
 source ${DOCKER_DIR}/${ENV_FILE}
 
-echo "Start Zookeeper"
+echo "Starting Zookeeper"
 ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER}.log
 ${SH_SHELL} ${DOCKER_DIR}/${ZOOKEEPER}/${BOOTSTRAP} >>${ZOOKEEPER_LOG} 2>>${ZOOKEEPER_LOG} & # Everything into log file
 writePID ${ZOOKEEPER} ${!}
+checkZookeeper "stat" "Mode:"
+echo "Started Zookeeper"
 
 # Check for log message before proceed ??? For each framework processes
 
-echo "Start Kafka"
+echo "Starting Kafka"
 KAFKA_LOG=${LOG_DIR}/${KAFKA}.log
 ${SH_SHELL} ${DOCKER_DIR}/${KAFKA}/${BOOTSTRAP} >>${KAFKA_LOG} 2>>${KAFKA_LOG} &
 writePID ${KAFKA} ${!}
+checkZookeeper "dump" "/kafka/"
+echo "Started Kafka"
 
-echo "Start Hadoop"
+echo "Starting Hadoop"
 HADOOP_LOG=${LOG_DIR}/${HADOOP}.log
 ${BASH_SHELL} ${DOCKER_DIR}/${HADOOP}/${BOOTSTRAP} >>${HADOOP_LOG} 2>>${HADOOP_LOG} & # Need /bin/bash instead of /bin/sh ???
-writePID ${KAFKA} ${!}
+writePID ${HADOOP} ${!}
+checkHadoop
+echo "Started Hadoop"
 
 echo "Start NPI with Options"
 
