@@ -1,0 +1,11 @@
+  <configuration>
+    <property>
+        <name>hadoop.tmp.dir</name>
+        <value>NPI_WORK</value>
+    </property>
+
+      <property>
+          <name>fs.defaultFS</name>
+          <value>HADOOP_URL</value>
+      </property>
+  </configuration>

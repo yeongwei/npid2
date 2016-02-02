@@ -1,0 +1,252 @@
+#!/bin/bash
+
+SCRIPT=$0
+if [ "`echo $0 | cut -c1`" = "." ]; then
+   SCRIPT="`pwd`/`echo "$0" | sed 's/\.\///g'`"
+elif [ "`echo $0 | cut -c1`" != "/" ]; then
+   SCRIPT="`pwd`/$0"
+fi
+
+BIN_DIR=`dirname $SCRIPT`
+PROG_DNAME=`basename $SCRIPT`
+PROG_NAME=`echo $PROG_DNAME | sed s/.$//`
+PROG_HOME=`dirname $BIN_DIR`
+PROG_VERSION=`cat $BIN_DIR/$PROG_NAME | grep ^PROG_VERSION= | awk -F"=" '{print $2}'`
+
+if [ -z "$PROG_HOME" ] ; then
+  ## resolve links - $0 may be a link to PROG_HOME
+  PRG="$0"
+
+  # need this for relative symlinks
+  while [ -h "$PRG" ] ; do
+    ls=`ls -ld "$PRG"`
+    link=`expr "$ls" : '.*-> \(.*\)$'`
+    if expr "$link" : '/.*' > /dev/null; then
+      PRG="$link"
+    else
+      PRG="`dirname "$PRG"`/$link"
+    fi
+  done
+
+  saveddir=`pwd`
+
+  PROG_HOME=`dirname "$PRG"`/..
+  # make it fully qualified
+  PROG_HOME=`cd "$PROG_HOME" && pwd`
+
+  cd "$saveddir"
+fi
+
+LOG_DIR=${PROG_HOME}/log
+CONSOLE_LOG=${LOG_DIR}/${PROG_DNAME}.log
+VAR_DIR=${PROG_HOME}/var
+PIDFILE=${VAR_DIR}/${PROG_NAME}.pid
+
+if [ ! -d "${LOG_DIR}" ]; then
+  mkdir -p ${LOG_DIR}
+  if [ "$?" != 0 ]; then
+    log ERROR "GYMPB0100E: Create directory $LOG_DIR failed!  Check permissions on parent directory."
+    exit 1
+  fi
+fi
+
+if [ ! -d "${VAR_DIR}" ]; then
+  mkdir -p ${VAR_DIR}
+  if [ "$?" != 0 ]; then
+    log ERROR "GYMPB0101E: Create directory $VAR_DIR failed! Check permissions on parent directory."
+    exit 1
+  fi
+fi
+
+log()
+{
+  severity=$1
+  shift
+  timestamp=`date "+%Y-%m-%d %H:%M:%S.%N"|cut -b1-23`
+  echo "[${severity}] [${timestamp}] [npid] $@" | tee -a ${CONSOLE_LOG}
+}
+
+showVersion()
+{
+  log INFO "GYMPB0102I: Application: ${PROG_NAME} Version: ${PROG_VERSION}"
+  exit 0
+}
+
+# check ulimit parameters
+check_ulimit_param() {
+  parameter=$1
+  name=$2
+  minvalue=$3
+  currentulimitvalue=`ulimit ${parameter}`
+  if [ ${currentulimitvalue} -lt ${minvalue} ]; then
+     #attempt to set ulimit
+     local sout
+     sout=$(ulimit -S ${parameter} ${minvalue} 2>&1)
+     if [ "$?" != 0 ]; then
+        log WARN "GYMPB0103W: ulimit parameter ${parameter} (${name}) is less than minimum value ${minvalue}! Fix by adding two lines to /etc/security/limits.conf: \"${USER} hard nofile ${minvalue}\" and \"${USER} soft nofile ${minvalue}\" and then log out the ${USER} user and log back in for the changes to take effect."
+        log WARN "GYMPB0104W: Standard error from ulimit command is \"${sout}\""
+     fi
+  fi
+}
+
+# test UDP tuning parameters
+check_sysctl_param() {
+  parameter=$1
+  minvalue=$2
+  currentvalue=`/sbin/sysctl ${parameter} | awk -F'= ' '{print $2}'`
+  if [ ${currentvalue} -lt ${minvalue} ]; then
+    if [ "${ROOT}" = "YES" ]; then
+       sysctl ${parameter}=${minvalue}
+    else
+       log ERROR "GYMPB0105E: sysctl parameter ${parameter}=${currentvalue} is less than required value ${minvalue}! Fix by adding \"${parameter}=${minvalue}\" to /etc/sysctl.conf and running sysctl -p as root. Alternatively, run ${PROG_NAME} as root."
+       ERRORS=$(($ERRORS + 1))
+    fi
+  fi
+}
+
+check_parameters() {
+  ERRORS=0
+  # check if root
+  if [ "${USER}" = "root" ]; then ROOT=YES; fi
+
+  if [ "${IGNORESYSCHECK}" != "Y" ]; then
+    check_ulimit_param "-n" "open files" 8096
+    check_sysctl_param net.core.rmem_default 33554432
+    check_sysctl_param net.core.rmem_max 33554432
+    check_sysctl_param net.core.netdev_max_backlog 10000
+    if [ "${ERRORS}" != "0" ]; then
+      log ERROR "GYMPB0106E: Another kernel parameter error is fatal. Exiting. Check ${CONSOLE_LOG} for GYMPB0105E errors."
+      exit 1
+    fi
+  fi
+}
+
+
+getPID() {
+  FILEPID=`readPIDFile`
+  PSPID=`findPID`
+  ARG=$1
+  if [ "$ARG" = "pidfile" ]; then
+    RETURNPID=$FILEPID
+  elif [ "$ARG" = "ps" ]; then
+    RETURNPID=$PSPID
+  else #return both
+    RETURNPID=`echo -e "${FILEPID}\n${PSPID}" | sort | uniq | xargs`
+  fi
+  echo $RETURNPID
+}
+
+readPIDFile() {
+  if [ -f "${PIDFILE}" ]; then
+    FILEPID=`cat ${PIDFILE}`
+  fi
+  echo $FILEPID
+}
+
+findPID() {
+  PSPID=`ps -eaf | grep -v grep | grep Dprog.name=${PROG_NAME} | awk '{print $2}' | xargs`
+  echo $PSPID
+}
+
+startApplication()
+{
+  check_parameters
+  CHECK_PID=`getPID`
+  if [ "${CHECK_PID}" != "" ]; then
+    log ERROR "GYMPB0107E: Application $PROG_NAME is already running! (PID: $CHECK_PID)"
+    exit 1
+  fi
+  cd ${PROG_HOME} 
+  bin/${PROG_NAME} $@ >/dev/null 2>>${CONSOLE_LOG} &
+  PROG_PID=$!
+  echo $PROG_PID > ${PIDFILE}
+  sleep 5
+  CHECK_PID=`getPID pidfile`
+  if [ "${CHECK_PID}" = "" ]; then
+    log ERROR "GYMPB0108E: Application ${PROG_NAME} started but died!  Check ${CONSOLE_LOG} and ${PROG_HOME}/log/${PROG_NAME}.log for errors."
+    exit 1
+  fi
+  log INFO "GYMPB0109I: Application $PROG_NAME Version $PROG_VERSION started (PID: $PROG_PID)"
+}
+
+stopApplication()
+{
+  trycount=0
+  RUNNING_PID=`getPID pidfile`
+  if [ "${RUNNING_PID}" = "" ]; then
+    log WARN "GYMPB0110W: PID file ${PIDFILE} does not exist for application ${PROG_NAME}.  Application may already be stopped or the PID file was deleted improperly."
+    exit 1
+  fi
+  RUNNING_PID=`getPID`
+  while [ "${RUNNING_PID}" != "" ] && [ $trycount -le 3 ]; do
+    log INFO "GYMPB0111I: Stopping $PROG_NAME (PID: $RUNNING_PID)"
+    kill -HUP $RUNNING_PID
+    trycount=$(( $trycount + 1 ))
+    sleep 3
+    RUNNING_PID=`getPID ps`
+  done
+  
+  if [ "${RUNNING_PID}" = "" ]; then
+    log INFO "GYMPB0112I: Application $PROG_NAME stopped successfully."
+    rm -f ${PIDFILE}
+  else
+    log INFO "GYPBS0113I: $PROG_NAME not responding to stop command.  Issuing kill option instead."
+    killApplication
+  fi
+}
+
+killApplication()
+{
+  RUNNING_PID=`getPID`
+  if [ "$RUNNING_PID" != "" ]; then
+    log INFO "GYPBS0114I: Killing $PROG_NAME (PID: $RUNNING_PID)"
+    kill -9 $RUNNING_PID
+  else
+    log INFO "GYPBS0115I: No PIDs to kill for $PROG_NAME!"
+  fi
+  rm -f ${PIDFILE}
+  RETVAL=0
+}
+
+IGNORESYSCHECK="N"
+if [ "${1}" == "-ignoresyscheck" ]; then
+  export IGNORESYSCHECK="Y"
+  shift
+fi
+ARG1=$1
+shift
+
+# See how we were called.
+case "${ARG1}" in
+  start)
+	startApplication $@
+	;;
+  stop)
+	stopApplication $@
+	;;
+  kill)
+	killApplication $@
+	;;
+  status)
+        CHECK_PID=`getPID`
+	if [ "${CHECK_PID}" != "" ]; then
+	  log INFO "GYMPB0116I: Application $PROG_NAME is running on pid $CHECK_PID"
+          RETVAL=0
+ 	else
+	  log INFO "GYMPB0117I: Application $PROG_NAME is not running."
+          RETVAL=1
+        fi
+	;;
+  restart)
+	stopApplication $@
+	startApplication $@
+	;;
+  version)
+	showVersion
+	;;
+  *)
+	echo $"Usage: $prog [-ignoresyscheck] {start|stop|restart|kill|status|version|help}"
+	RETVAL=2
+esac
+
+exit $RETVAL
