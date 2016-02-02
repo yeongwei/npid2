@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "Start Zookeeper"
+echo "Start Kafka"
+echo "Start Hadoop"
+echo "Start NPI with Options"
