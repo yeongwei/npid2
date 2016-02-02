@@ -3,6 +3,8 @@
 ############################################################
 ## C O N S T A N T S #######################################
 ############################################################
+## New variables that are global
+############################################################
 ZOOKEEPER="zk"
 KAFKA="kafka"
 HADOOP="spark_hadoop"
@@ -66,22 +68,28 @@ writePID()
 	fi
 }
 
+############################################################
+## E N V # C O N D I T I O N I N G #########################
+############################################################
 # Re-using existing bootstraps from docker
 DOCKER_DIR=${PROG_HOME}/docker
 BOOTSTRAP="bootstrap.sh"
 ENV_FILE="npi_env.sh"
-SH_SHELL=`which sh`
 
+
+# New environmental variables
+SH_SHELL=`which sh`
+BASH_SHELL=`which bash`
 SERVICES_DIR=${PROG_HOME}/services
 
-# Is this the right way ???
+# New exports
 export NPI_HOME=${PROG_HOME}
+export NAMENODE=true
+export USER_CONFIG=false
+export HADOOP_PREFIX=${SERVICES_DIR}/hadoop
 
-# Due to /bin/sh of boostrap.sh, shall we ignore "bad trap" ???
-# Use /bin/sh to invoke instead ???
-
-# Assuming after user has modified this file
-${SH_SHELL} ${DOCKER_DIR}/${ENV_FILE}
+# Assuming USERS has modified this file
+source ${DOCKER_DIR}/${ENV_FILE}
 
 echo "Start Zookeeper"
 ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER}.log
@@ -96,9 +104,8 @@ ${SH_SHELL} ${DOCKER_DIR}/${KAFKA}/${BOOTSTRAP} >>${KAFKA_LOG} 2>>${KAFKA_LOG} &
 writePID ${KAFKA} ${!}
 
 echo "Start Hadoop"
-export HADOOP_PREFIX=${SERVICES_DIR}/hadoop # Ideally this should come from where ???
 HADOOP_LOG=${LOG_DIR}/${HADOOP}.log
-/bin/bash ${DOCKER_DIR}/${HADOOP}/${BOOTSTRAP} >>${HADOOP_LOG} 2>>${HADOOP_LOG} & # Need /bin/bash instead of /bin/sh ???
+${BASH_SHELL} ${DOCKER_DIR}/${HADOOP}/${BOOTSTRAP} >>${HADOOP_LOG} 2>>${HADOOP_LOG} & # Need /bin/bash instead of /bin/sh ???
 writePID ${KAFKA} ${!}
 
 echo "Start NPI with Options"
