@@ -5,11 +5,20 @@
 ############################################################
 ## New variables that are global
 ############################################################
+
+# Application names
+ZOOKEEPER_APP_NAME="zookeeper"
+APP_NAME_KAFKA="kafka"
+APP_NAME_HADOOP="hadoop"
+
+# Reflects folder names inside docker directory
 ZOOKEEPER="zk"
 KAFKA="kafka"
 HADOOP="spark_hadoop"
 NPI="npi"
-TRY_COUNT=5
+
+# Global stuffs around
+TRY_COUNT=10
 SLEEP_TIME=5
 
 SCRIPT=$0
@@ -75,61 +84,83 @@ fi
 ############################################################
 ## E X I S T I N G # F U N C T I O N S #####################
 ############################################################
-log()
-{
+log() {
   severity=$1
   shift
   timestamp=`date "+%Y-%m-%d %H:%M:%S.%N"|cut -b1-23`
   echo "[${severity}] [${timestamp}] [npid] $@" | tee -a ${CONSOLE_LOG}
 }
 
-showVersion()
-{
+showVersion() {
   log INFO "GYMPB0102I: Application: ${PROG_NAME2} Version: ${PROG_VERSION}"
   exit 0
-}
-
-
-## Zookeeper
-startZookeeper() {
-}
-
-stopZookeeper() {
-}
-
-## Kafka
-startKafka() {
-}
-
-stopKafka() {
-}
-
-## Hadoop
-startaHadoop() {
-}
-
-stopHadoop() {
-}
-
-## Npi
-startNpi() {
-}
-
-stopNpi() {
-}
-
-checkStatus() {
-	
 }
 
 ############################################################
 ## N E W # F U N C T I O N S ###############################
 ############################################################
-writePID() 
-{
+
+##
+## E.g.
+## npid start - starts all framework + npi
+## npid start zookeeper
+## npid start kafka
+## npid start hadoop
+##
+## npid start npi - only starts npi
+## npid start npi-storage
+## npid start npi-analytics
+## npid start npi-collector
+## npid start npi-ui
+##	
+npidUsage() {
+	echo "Usage: npid {start|stop|restart|kill|status|version|help} [<component_name>|<service_name>]"
+	echo "component_name: npi, npi-storage, npi-analaytics, npi-collector, npi-ui"
+	echo "service_name: zookeeper, kafka, hadoop"
+	echo ""
+	echo "Example: "
+	echo "	1) npid start"
+	echo "	2) npid start npi"
+	echo "	3) npid start zookeeper"
+	echo "	4) npid stop"
+}
+
+##
+## Check based on application name if, 
+##	1. appplication PID file exist 
+##	2. PID file is not empty
+##	3. PID is found under ps ax
+## Return 1 if found else 0
+## E.g. 
+##	isPidValid zookeeper
+##	isPidValid npi-storage
+##
+isPidValid() {
+	$pidFile=${VAR_DIR}/${1}.pid
+
+	if [ ! -f ${pidFile} ]; then # no pid file exists
+		echo 0
+	fi
+
+	pid=`cat ${pidFile}`
+	if [ -z "${pid}" ]; then # pid file is empty
+		echo 0
+	fi
+
+	if [ -z "`ps ax | grep ${pid} | grep -v grep`"]; then # pid is not within ps
+		echo 0
+	fi
+
+	echo 1 # pid is valid within ps
+}
+
+##
+## Created PID file based on application name. E.g. kafka.pid
+##
+writePID() {
 	if [ $# -eq 2 ]
 	then
-		echo $2 >> ${VAR_DIR}/${1}.pid
+		echo $2 > ${VAR_DIR}/${1}.pid # do we use >> instead ???
 	else
 		log ERROR "GYMPB0000E: Not enough arguments to write into PID file."
 		exit 1
@@ -137,9 +168,10 @@ writePID()
 }
 
 ##
-## USAGE: checkZookeeper <CMD> <PATTERN>
+## Check if Zookeeper has started
+## USAGE: checkZookeeperStarted <CMD> <PATTERN> <APPLICATION>
 ##
-checkZookeeper() {
+checkZookeeperStarted() {
 	tryCount=${TRY_COUNT}
 	isZookeeperUp=0
 	host=`echo ${ZOOKEEP_URL} | cut -d: -f1`
@@ -156,10 +188,63 @@ checkZookeeper() {
 	done
 
 	if [ ${isZookeeperUp} -eq 0 ]; then
-		log ERROR "GYMPB0000E: Zookeeper / Kafka is not starting."
+		log ERROR "GYMPB0000E: ${3} is not starting."
 		exit 1
+	else
+		log INFO "GYMPB0000I: ${3} has started"
 	fi
 }
+# ===================
+# = Zookeeper =======
+# ===================
+startZookeeper() {
+	status=`isPidValid "zookeeper"`
+	log INFO "GYMPB0000I: About to start Zookeeper"
+	ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER}.log
+	${SH_SHELL} ${DOCKER_DIR}/${ZOOKEEPER}/${BOOTSTRAP} >>${ZOOKEEPER_LOG} 2>>${ZOOKEEPER_LOG} &
+	writePID "zookeeper" ${!}
+	checkZookeeperStarted "stat" "Mode:" "Zookeeper"
+}
+
+stopZookeeper() {
+	log INFO "GYMPB0000I: About to stop Zookeeper"
+	${SERVICES_DIR}/zookeeper/bin/zookeeper-server-stop.sh >>${ZOOKEEPER_LOG} 2>>${ZOOKEEPER_LOG} &
+	
+	tryCount=${TRY_COUNT}
+	isZookeeperDown=0
+	
+	while [ $tryCount -ne 0 ]; do
+		psStatus=`ps ax | grep -i 'zookeeper' | grep -v grep | awk '{print $1}'`
+		if [ -z "${psStatus}" ]; do
+			isZookeeperDown=1
+			break
+		fi
+		sleep ${SLEEP_TIME}
+		tryCount=$(( ${tryCount} - 1 ))
+	done
+
+	if [ ${isZookeeperDown} -eq 0 ]; then
+		log ERROR "GYMPB0000E: Zookeepeer is not stopping."
+		exit 1
+	else
+		log INFO "GYMPB0000I: Zookeepeer has stopped."
+	fi
+}
+
+# ================
+# = Kafka ========
+# ================
+startKafka() {
+	a=1
+}
+
+stopKafka() {
+	a=1
+}
+
+# ==============
+# = Hadoop =====
+# ==============
 
 ##
 ## There are initial errors not able surpress by this script ***
@@ -204,28 +289,85 @@ checkHadoop() {
 	fi
 }
 
+startaHadoop() {
+	a=1
+}
+
+stopHadoop() {
+	a=1
+}
+
+# ===============
+# = Npi =========
+# ===============
+startNpi() {
+	a=1
+}
+
+stopNpi() {
+	a=1
+}
+
+# ==========================
+# = Start Rountine =========
+# ==========================
+startRoutine() {
+	case "${1}" in
+		zookeeper)
+			startZookeeper
+		;;
+		*)
+			npidUsage
+		;;
+}
+
+# ==========================
+# = Stop Rountine =========
+# ==========================
+
+# Check if any components related to Npi is running
+checkIfAnyNpiRunning() {
+	a=1
+}
+
+getPID() {
+	if [ -f ${VAR_DIR}/${1}.pid ]; then
+		echo -e `head -1 ${VAR_DIR}/${1}.pid` # cat or head ???
+	else
+		log ERROR "GYMPB0000E: PID does not exist."
+		exit -1
+	fi
+}
+
 ##
-## E.g.
-## npid start - starts all framework + npi
-## npid start zookeeper
-## npid start kafka
-## npid start hadoop
-## npid start npi - only starts npi
-## npid start npi-storage
-## npid start npi-analytics
-## npid start npi-collector
-## npid start npi-ui
-##	
-npidUsage() {
-	echo "Usage: npid {start|stop|restart|kill|status|version|help} [<component_name>|<service_name>]"
-	echo "component_name: npi, npi-storage, npi-analaytics, npi-collector, npi-ui"
-	echo "service_name: zookeeper, kafka, hadoop"
-	echo ""
-	echo "Example: "
-	echo "	1) npid start"
-	echo "	2) npid start npi"
-	echo "	3) npid start zookeeper"
-	echo "	4) npid stop"
+## Each service or component should have it's own dedicated pid file
+## 
+##
+checkStatus() {
+	if [ -f ${VAR_DIR}/${1}.pid ]; then
+		pid=`getPID ${1}`
+		log INFO "GYMPB0116I: Application ${1} is running on pid ${pid}."
+	else
+		log INFO "GYMPB0117I: Application ${1} is not started."
+	fi		
+}
+
+##
+## Status dump for all components and services that is found in /var/*
+##
+checkAllStatus() {
+	allAvailPidFile=`ls -1 ${VAR_DIR}`
+	allAvailPidFile2=(${allAvailPidFile[*]}) # Transpose into array
+
+	if [ ${#allAvailPidFile2[@]} -eq 0 ]; then
+		log INFO "GYMPB0117I: No application started."
+	else
+		for pidFile in "${allAvailPidFile2[@]}"; do
+			appName=`echo ${pidFile} | cut -d. -f1`
+			appPid=`head -1 ${VAR_DIR}/${pidFile}` # should use cat or head ???
+			log INFO "GYMPB0116I: Application ${appName} is running on pid ${appPid}."
+		done
+	fi 
 }
 
 # Assuming USERS has modified this file
@@ -237,14 +379,16 @@ if [ $# -lt 1 ]; then
 	exit -1
 fi
 
+if [ $# -gt 2 ]; then
+	log WARNING "GYMPB0000W Too many arguments."
+fi
+
 ARG1=$1
 ARG2=$2
+# echo "ARG1: ${ARG1}, ARG2: ${ARG2}" # Development purpose only
 
 case "${ARG1}" in
 	start)
-		if [ -z "${ARG2}"]; then
-		else
-		fi
 	;;
 	stop)
 	;;
@@ -253,6 +397,11 @@ case "${ARG1}" in
 	kill)
 	;;
 	status)
+		if [ -z "${ARG2}" ]; then
+			checkAllStatus
+		else
+			checkStatus ${ARG2}
+		fi
 	;;
 	version)
 		showVersion
@@ -269,20 +418,11 @@ exit 2;
 ## M A I N #################################################
 ############################################################
 
-echo "Starting Zookeeper"
-ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER}.log
-${SH_SHELL} ${DOCKER_DIR}/${ZOOKEEPER}/${BOOTSTRAP} >>${ZOOKEEPER_LOG} 2>>${ZOOKEEPER_LOG} & # Everything into log file
-writePID ${ZOOKEEPER} ${!}
-checkZookeeper "stat" "Mode:"
-echo "Started Zookeeper"
-
-# Check for log message before proceed ??? For each framework processes
-
 echo "Starting Kafka"
 KAFKA_LOG=${LOG_DIR}/${KAFKA}.log
 ${SH_SHELL} ${DOCKER_DIR}/${KAFKA}/${BOOTSTRAP} >>${KAFKA_LOG} 2>>${KAFKA_LOG} &
 writePID ${KAFKA} ${!}
-checkZookeeper "dump" "/kafka/"
+checkZookeeperStarted "dump" "/kafka/"
 echo "Started Kafka"
 
 echo "Starting Hadoop"
