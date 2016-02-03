@@ -8,8 +8,13 @@
 
 # Application names
 ZOOKEEPER_APP_NAME="zookeeper"
-APP_NAME_KAFKA="kafka"
-APP_NAME_HADOOP="hadoop"
+KAFKA_APP_NAME="kafka"
+HADOOP_APP_NAME="hadoop"
+
+# Application names (human readable)
+ZOOKEEPER_READABLE="Zookeeper"
+KAFKA_READABLE="Kafka"
+HADOOP_READABLE="Hadoop"
 
 # Reflects folder names inside docker directory
 ZOOKEEPER="zk"
@@ -62,8 +67,8 @@ export ZKPREFIX=""
 LOG_DIR=${PROG_HOME}/log
 CONSOLE_LOG=${LOG_DIR}/${PROG_DNAME}.log
 VAR_DIR=${PROG_HOME}/var
-PIDFILE=${VAR_DIR}/${PROG_NAME}.pid
-PIDFILE2=${VAR_DIR}/frameworks.pid # temporary only
+
+ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER_APP_NAME}.log
 
 if [ ! -d "${LOG_DIR}" ]; then
   mkdir -p ${LOG_DIR}
@@ -136,22 +141,33 @@ npidUsage() {
 ##	isPidValid npi-storage
 ##
 isPidValid() {
-	$pidFile=${VAR_DIR}/${1}.pid
+	pidFile=${VAR_DIR}/${1}.pid
 
-	if [ ! -f ${pidFile} ]; then # no pid file exists
+	if [ -f ${pidFile} ]; then 
+		pid=`cat ${pidFile}`
+		if [ -z "${pid}" ]; then # pid file is empty
+			echo 0
+		else # pid file not empty
+			if [ -z "`ps ax | grep ${pid} | grep -v grep`" ]; then # pid is not within ps
+				echo 0
+			else # pid is valid within ps
+				echo 1
+			fi
+		fi	
+	else # no pid file exists
 		echo 0
 	fi
+}
 
-	pid=`cat ${pidFile}`
-	if [ -z "${pid}" ]; then # pid file is empty
-		echo 0
+##
+## If 1 then log ERROR then exit with -1
+## E.g. emergencyExit $status "GYM ..."
+##
+emergencyExit() {
+	if [ ${1} -eq 1 ]; then
+		log ERROR ${2}
+		exit -1
 	fi
-
-	if [ -z "`ps ax | grep ${pid} | grep -v grep`"]; then # pid is not within ps
-		echo 0
-	fi
-
-	echo 1 # pid is valid within ps
 }
 
 ##
@@ -167,6 +183,27 @@ writePID() {
 	fi
 }
 
+##
+## Remove PID file based on application name. E.g. hadoop.pid
+##
+removePID() {
+	rm ${VAR_DIR}/${1}.pid
+}
+
+##
+## Get pid from PID file. E.g. hadoop.pid
+##
+getPID() {
+	echo `cat ${VAR_DIR}/${1}.pid`
+}
+
+
+##
+## Kill(15) pid and it's associated processes
+##
+killAssociatively() {
+	ps -ef | grep ${1} | grep -v grep | awk '{print $2}' | xargs -i kill -15 {}
+}
 ##
 ## Check if Zookeeper has started
 ## USAGE: checkZookeeperStarted <CMD> <PATTERN> <APPLICATION>
@@ -198,24 +235,28 @@ checkZookeeperStarted() {
 # = Zookeeper =======
 # ===================
 startZookeeper() {
-	status=`isPidValid "zookeeper"`
-	log INFO "GYMPB0000I: About to start Zookeeper"
-	ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER}.log
-	${SH_SHELL} ${DOCKER_DIR}/${ZOOKEEPER}/${BOOTSTRAP} >>${ZOOKEEPER_LOG} 2>>${ZOOKEEPER_LOG} &
-	writePID "zookeeper" ${!}
-	checkZookeeperStarted "stat" "Mode:" "Zookeeper"
+	status=`isPidValid "${ZOOKEEPER_APP_NAME}"`
+	emergencyExit ${status} "GYMPB0000E: ${ZOOKEEPER_READABLE} is already running."
+
+	log INFO "GYMPB0000I: About to start ${ZOOKEEPER_READABLE}"
+	cd ${SERVICES_DIR}/${KAFKA_APP_NAME} && ./bin/zookeeper-server-start.sh ${SERVICES_DIR}/conf/${KAFKA_APP_NAME}/${ZOOKEEPER_APP_NAME}.properties >>${ZOOKEEPER_LOG} 2>>${ZOOKEEPER_LOG} &
+	writePID ${ZOOKEEPER_APP_NAME} ${!}
+	checkZookeeperStarted "stat" "Mode:" ${ZOOKEEPER_READABLE}
 }
 
 stopZookeeper() {
 	log INFO "GYMPB0000I: About to stop Zookeeper"
-	${SERVICES_DIR}/zookeeper/bin/zookeeper-server-stop.sh >>${ZOOKEEPER_LOG} 2>>${ZOOKEEPER_LOG} &
-	
+	# reference from https://github.com/linkedin/linkedin-zookeeper/blob/master/org.linkedin.zookeeper-server/src/cmdline/resources/bin/zkServer.sh
+	pid=`getPID ${ZOOKEEPER_APP_NAME}`
+	log DEBUG "GYMPB0000I: Attempting to kill processes associated with ${pid}"
+	killAssociatively ${pid}
+
 	tryCount=${TRY_COUNT}
 	isZookeeperDown=0
 	
 	while [ $tryCount -ne 0 ]; do
-		psStatus=`ps ax | grep -i 'zookeeper' | grep -v grep | awk '{print $1}'`
-		if [ -z "${psStatus}" ]; do
+		psStatus=`ps ax | grep ${ZOOKEEPER_APP_NAME} | grep -v grep | grep -v ${PROG_NAME}`
+		if [ -z "${psStatus}" ]; then
 			isZookeeperDown=1
 			break
 		fi
@@ -228,6 +269,7 @@ stopZookeeper() {
 		exit 1
 	else
 		log INFO "GYMPB0000I: Zookeepeer has stopped."
+		removePID ${ZOOKEEPER_APP_NAME}
 	fi
 }
 
@@ -311,19 +353,33 @@ stopNpi() {
 # ==========================
 # = Start Rountine =========
 # ==========================
+# Each case responsible of start procedure for each application
 startRoutine() {
 	case "${1}" in
-		zookeeper)
+		"${ZOOKEEPER_APP_NAME}")
 			startZookeeper
 		;;
 		*)
+			log INFO "GYMPB0000I Application name is missing."
 			npidUsage
 		;;
+	esac
 }
 
 # ==========================
-# = Stop Rountine =========
+# = Stop Rountine ==========
 # ==========================
+stopRountine() {
+	case "${1}" in 
+		"${ZOOKEEPER_APP_NAME}")
+			stopZookeeper
+		;;
+		*)
+			log INFO "GYMPB0000I Application name is missing."
+			npidUsage
+		;;
+	esac
+}
 
 # Check if any components related to Npi is running
 checkIfAnyNpiRunning() {
@@ -373,6 +429,10 @@ checkAllStatus() {
 # Assuming USERS has modified this file
 source ${DOCKER_DIR}/${ENV_FILE}
 
+############################################################
+## C O N T R O L L E R #####################################
+############################################################
+
 # Manage input arguments from here
 if [ $# -lt 1 ]; then
 	npidUsage
@@ -389,14 +449,17 @@ ARG2=$2
 
 case "${ARG1}" in
 	start)
+		startRoutine ${ARG2}
 	;;
 	stop)
+		stopRountine ${ARG2}
 	;;
 	restart)
 	;;
 	kill)
 	;;
 	status)
+		# statusRoutine
 		if [ -z "${ARG2}" ]; then
 			checkAllStatus
 		else
