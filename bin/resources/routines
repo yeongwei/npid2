@@ -1,0 +1,42 @@
+#!/bin/bash
+
+## ==========================================================
+## 1. Various routine block that comply to user command
+## 2. User command example; start, stop, restart ...
+## ==========================================================
+
+##
+## For CMD "start"
+##
+startRoutine() {
+	case "${1}" in
+		"${ZOOKEEPER_APP_NAME}")
+			startZookeeper
+		;;
+		"${KAFKA_APP_NAME}")
+			startKafka
+		;;
+		*)
+			log INFO "GYMPB0000I Application name is missing."
+			npidUsage
+		;;
+	esac
+}
+
+##
+## For CMD "stop"
+##
+stopRountine() {
+	case "${1}" in 
+		"${ZOOKEEPER_APP_NAME}")
+			stopZookeeper
+		;;
+		"${KAFKA_APP_NAME}")
+			stopKafka
+		;;
+		*)
+			log INFO "GYMPB0000I Application name is missing."
+			npidUsage
+		;;
+	esac
+}

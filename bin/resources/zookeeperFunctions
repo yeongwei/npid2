@@ -1,0 +1,71 @@
+#!/bin/bash
+
+## ==========================================================
+## 1. Functions related to Zookeeper
+## ==========================================================
+
+##
+## Check if Zookeeper has started
+## USAGE: checkZookeeperStarted <CMD> <PATTERN> <APPLICATION>
+##
+checkZookeeperStarted() {
+	tryCount=${TRY_COUNT}
+	isZookeeperUp=0
+	host=`echo ${ZOOKEEP_URL} | cut -d: -f1`
+	port=`echo ${ZOOKEEP_URL} | cut -d: -f2`
+
+	while [ ${tryCount} -ne 0 ]; do
+		ncResult=`echo ${1} | nc ${host} ${port} | grep ${2}`
+		if [ ! -z "${ncResult}" ]; then
+			isZookeeperUp=1
+			break			
+		fi
+		sleep ${SLEEP_TIME}
+		tryCount=$(( ${tryCount} - 1 ))
+	done
+
+	if [ ${isZookeeperUp} -eq 0 ]; then
+		emergencyExit "1" "GYMPB0000E: ${3} is not starting."
+	else
+		log INFO "GYMPB0000I: ${3} has started"
+	fi
+}
+
+startZookeeper() {
+	status=`isPidValid "${ZOOKEEPER_APP_NAME}"`
+	emergencyExit ${status} "GYMPB0000E: ${ZOOKEEPER_READABLE} is already running."
+
+	log INFO "GYMPB0000I: About to start ${ZOOKEEPER_READABLE}"
+	cd ${SERVICES_DIR}/${KAFKA_APP_NAME} && ./bin/zookeeper-server-start.sh ${SERVICES_DIR}/conf/${KAFKA_APP_NAME}/${ZOOKEEPER_APP_NAME}.properties >>${ZOOKEEPER_LOG} 2>>${ZOOKEEPER_LOG} &
+	writePID ${ZOOKEEPER_APP_NAME} ${!}
+	checkZookeeperStarted "stat" "Mode:" ${ZOOKEEPER_READABLE}
+}
+
+stopZookeeper() {
+	log INFO "GYMPB0000I: About to stop ${ZOOKEEPER_READABLE}"
+	# reference from https://github.com/linkedin/linkedin-zookeeper/blob/master/org.linkedin.zookeeper-server/src/cmdline/resources/bin/zkServer.sh
+	pid=`getPID ${ZOOKEEPER_APP_NAME}`
+	log DEBUG "GYMPB0000I: Attempting to kill processes associated with ${pid}"
+	killAssociatively ${pid}
+
+	tryCount=${TRY_COUNT}
+	isZookeeperDown=0
+	
+	while [ $tryCount -ne 0 ]; do
+		psStatus=`getPsByName ${ZOOKEEPER_APP_NAME}`
+		if [ -z "${psStatus}" ]; then
+			isZookeeperDown=1
+			break
+		fi
+		sleep ${SLEEP_TIME}
+		tryCount=$(( ${tryCount} - 1 ))
+	done
+
+	if [ ${isZookeeperDown} -eq 0 ]; then
+		emergencyExit "1" "GYMPB0000E: ${ZOOKEEPER_READABLE} is not stopping."
+	else
+		log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} has stopped."
+		removePID ${ZOOKEEPER_APP_NAME}
+	fi
+}
+

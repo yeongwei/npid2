@@ -1,0 +1,157 @@
+#!/bin/bash
+
+## ==================================================
+## 1. Common functions used by the script
+## ==================================================
+
+##
+## E.g.
+## npid start zookeeper
+## npid start kafka
+## npid start hadoop
+##
+## npid start npi - only starts npi
+## npid start npi-storage
+## npid start npi-analytics
+## npid start npi-collector
+## npid start npi-ui
+##	
+npidUsage() {
+	echo "Usage: npid {start|stop|restart|kill|status|version|help} [all|<component_name>|<service_name>]"
+	echo "component_name: npi, npi-storage, npi-analaytics, npi-collector, npi-ui"
+	echo "service_name: zookeeper, kafka, hadoop"
+	echo ""
+	echo "Example: "
+	echo "	1) npid start all"
+	echo "	2) npid start npi-storage"
+	echo "	3) npid start zookeeper"
+	echo "	4) npid stop all"
+}
+
+##
+## If 1 then log ERROR then exit with -1
+## E.g. emergencyExit $status "GYM ..."
+##
+emergencyExit() {
+	if [ ${1} -eq 1 ]; then
+		log ERROR ${2}
+		exit -1
+	fi
+}
+
+##
+## Check based on application name if, 
+##	1. appplication PID file exist 
+##	2. PID file is not empty
+##	3. PID is found under ps ax
+## Return 1 if found else 0
+## E.g. 
+##	isPidValid zookeeper
+##	isPidValid npi-storage
+##
+isPidValid() {
+	pidFile=${VAR_DIR}/${1}.pid
+
+	if [ -f ${pidFile} ]; then 
+		pid=`cat ${pidFile}`
+		if [ -z "${pid}" ]; then # pid file is empty
+			echo 0
+		else # pid file not empty
+			if [ -z "`ps ax | grep ${pid} | grep -v grep`" ]; then # pid is not within ps
+				echo 0
+			else # pid is valid within ps
+				echo 1
+			fi
+		fi	
+	else # no pid file exists
+		echo 0
+	fi
+}
+
+##
+## Retrieve information from ps with grep name
+## Expected to pass in the Application Name. E.g. zookeeper, hadoop
+##
+getPsByName() {
+	echo "`ps ax | grep ${1} | grep -v grep | grep -v ${PROG_NAME}`"
+}
+
+##
+## Created PID file based on application name. E.g. kafka.pid
+##
+writePID() {
+	if [ $# -eq 2 ]
+	then
+		echo $2 > ${VAR_DIR}/${1}.pid # do we use >> instead ???
+	else
+		log ERROR "GYMPB0000E: Not enough arguments to write into PID file."
+		exit 1
+	fi
+}
+
+##
+## Remove PID file based on application name. E.g. hadoop.pid
+##
+removePID() {
+	rm ${VAR_DIR}/${1}.pid
+}
+
+##
+## Get pid from PID file. E.g. hadoop.pid
+##
+getPID() {
+	if [ -f ${VAR_DIR}/${1}.pid ]; then
+		echo -e `head -1 ${VAR_DIR}/${1}.pid` # cat or head ???
+	else
+		log ERROR "GYMPB0000E: PID does not exist."
+		exit -1
+	fi
+}
+
+##
+## Kill(15) pid and it's associated processes
+##
+killAssociatively() {
+	ps -ef | grep ${1} | grep -v grep | awk '{print $2}' | xargs -i kill -15 {}
+}
+
+##
+## Usage: stopApplication {<application_name>} {<application_readable_name>}
+##
+stopApplication() {
+	log INFO "GYMPB0000I: Can we refactor all the stop*() functions ???"
+}
+
+##
+## Check application status based on application name,
+## since each application has dedicated PID file
+## Example,
+## 	1. checkStatus zookeeper
+##	2. checkStatus npi-storage
+##
+checkStatus() {
+	if [ -f ${VAR_DIR}/${1}.pid ]; then
+		pid=`getPID ${1}`
+		log INFO "GYMPB0116I: Application ${1} is running on pid ${pid}."
+	else
+		log INFO "GYMPB0117I: Application ${1} is not started."
+	fi		
+}
+
+##
+## Check application status based on the PID files found in var/*
+##
+checkAllStatus() {
+	allAvailPidFile=`ls -1 ${VAR_DIR}`
+	allAvailPidFile2=(${allAvailPidFile[*]}) # Transpose into array
+
+	if [ ${#allAvailPidFile2[@]} -eq 0 ]; then
+		log INFO "GYMPB0117I: No application started."
+	else
+		for pidFile in "${allAvailPidFile2[@]}"; do
+			appName=`echo ${pidFile} | cut -d. -f1`
+			appPid=`head -1 ${VAR_DIR}/${pidFile}` # should use cat or head ???
+			log INFO "GYMPB0116I: Application ${appName} is running on pid ${appPid}."
+		done
+	fi 
+}
