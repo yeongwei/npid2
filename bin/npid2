@@ -339,6 +339,40 @@ stopKafka() {
 # ==============
 
 ##
+## From bootstraps.sh
+##
+nn_service() {
+	cmd=$1
+	NAMENODES=$(${HADOOP_PREFIX}/bin/hdfs getconf -namenodes)
+	
+	log DEBUG "GYMPB0000I: ${cmd} namenodes on [${NAMENODES}]"
+	
+	"$HADOOP_PREFIX/sbin/hadoop-daemon.sh" \
+	  --config "$HADOOP_CONF_DIR" \
+	  --hostnames "$NAMENODES" \
+	  --script "$HADOOP_PREFIX/bin/hdfs" $cmd namenode 
+	  
+	SECONDARY_NAMENODES=$($HADOOP_PREFIX/bin/hdfs getconf -secondarynamenodes 2>/dev/null)
+	
+	if [ -n "$SECONDARY_NAMENODES" ]; then
+	  echo "$cmd secondary namenodes [$SECONDARY_NAMENODES]"
+	
+	  "$HADOOP_PREFIX/sbin/hadoop-daemon.sh" \
+	      --config "$HADOOP_CONF_DIR" \
+	      --hostnames "$SECONDARY_NAMENODES" \
+	      --script "$HADOOP_PREFIX/bin/hdfs" $cmd secondarynamenode
+	  if [ $WAIT_PID -eq 0 ];then
+	  	WAIT_PID=$(cat /tmp/hadoop-*-secondarynamenode.pid |head -1)
+	  fi
+	fi
+    
+    if [ $WAIT_PID -eq 0 ];then
+	  	WAIT_PID=$(cat /tmp/hadoop-*-namenode.pid |head -1)
+	fi
+	"$HADOOP_PREFIX"/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR $cmd resourcemanager	
+}
+
+##
 ## There are initial errors not able surpress by this script ***
 ##
 checkHadoop() {
