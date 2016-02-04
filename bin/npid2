@@ -69,6 +69,7 @@ CONSOLE_LOG=${LOG_DIR}/${PROG_DNAME}.log
 VAR_DIR=${PROG_HOME}/var
 
 ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER_APP_NAME}.log
+KAFKA_LOG=${LOG_DIR}/${KAFKA}.log
 
 if [ ! -d "${LOG_DIR}" ]; then
   mkdir -p ${LOG_DIR}
@@ -119,15 +120,26 @@ showVersion() {
 ## npid start npi-ui
 ##	
 npidUsage() {
-	echo "Usage: npid {start|stop|restart|kill|status|version|help} [<component_name>|<service_name>]"
+	echo "Usage: npid {start|stop|restart|kill|status|version|help} [all|<component_name>|<service_name>]"
 	echo "component_name: npi, npi-storage, npi-analaytics, npi-collector, npi-ui"
 	echo "service_name: zookeeper, kafka, hadoop"
 	echo ""
 	echo "Example: "
-	echo "	1) npid start"
-	echo "	2) npid start npi"
+	echo "	1) npid start all"
+	echo "	2) npid start npi-storage"
 	echo "	3) npid start zookeeper"
-	echo "	4) npid stop"
+	echo "	4) npid stop all"
+}
+
+##
+## If 1 then log ERROR then exit with -1
+## E.g. emergencyExit $status "GYM ..."
+##
+emergencyExit() {
+	if [ ${1} -eq 1 ]; then
+		log ERROR ${2}
+		exit -1
+	fi
 }
 
 ##
@@ -160,14 +172,11 @@ isPidValid() {
 }
 
 ##
-## If 1 then log ERROR then exit with -1
-## E.g. emergencyExit $status "GYM ..."
+## Retrieve information from ps with grep name
+## Expected to pass in the Application Name. E.g. zookeeper, hadoop
 ##
-emergencyExit() {
-	if [ ${1} -eq 1 ]; then
-		log ERROR ${2}
-		exit -1
-	fi
+getPsByName() {
+	echo "`ps ax | grep ${1} | grep -v grep | grep -v ${PROG_NAME}`"
 }
 
 ##
@@ -204,6 +213,18 @@ getPID() {
 killAssociatively() {
 	ps -ef | grep ${1} | grep -v grep | awk '{print $2}' | xargs -i kill -15 {}
 }
+
+##
+## Usage: stopApplication {<application_name>} {<application_readable_name>}
+##
+stopApplication() {
+	log INFO "GYMPB0000I: Can we refactor all the stop*() functions ???"
+}
+
+# ===================
+# = Zookeeper =======
+# ===================
+
 ##
 ## Check if Zookeeper has started
 ## USAGE: checkZookeeperStarted <CMD> <PATTERN> <APPLICATION>
@@ -225,15 +246,12 @@ checkZookeeperStarted() {
 	done
 
 	if [ ${isZookeeperUp} -eq 0 ]; then
-		log ERROR "GYMPB0000E: ${3} is not starting."
-		exit 1
+		emergencyExit "1" "GYMPB0000E: ${3} is not starting."
 	else
 		log INFO "GYMPB0000I: ${3} has started"
 	fi
 }
-# ===================
-# = Zookeeper =======
-# ===================
+
 startZookeeper() {
 	status=`isPidValid "${ZOOKEEPER_APP_NAME}"`
 	emergencyExit ${status} "GYMPB0000E: ${ZOOKEEPER_READABLE} is already running."
@@ -245,7 +263,7 @@ startZookeeper() {
 }
 
 stopZookeeper() {
-	log INFO "GYMPB0000I: About to stop Zookeeper"
+	log INFO "GYMPB0000I: About to stop ${ZOOKEEPER_READABLE}"
 	# reference from https://github.com/linkedin/linkedin-zookeeper/blob/master/org.linkedin.zookeeper-server/src/cmdline/resources/bin/zkServer.sh
 	pid=`getPID ${ZOOKEEPER_APP_NAME}`
 	log DEBUG "GYMPB0000I: Attempting to kill processes associated with ${pid}"
@@ -255,7 +273,7 @@ stopZookeeper() {
 	isZookeeperDown=0
 	
 	while [ $tryCount -ne 0 ]; do
-		psStatus=`ps ax | grep ${ZOOKEEPER_APP_NAME} | grep -v grep | grep -v ${PROG_NAME}`
+		psStatus=`getPsByName ${ZOOKEEPER_APP_NAME}`
 		if [ -z "${psStatus}" ]; then
 			isZookeeperDown=1
 			break
@@ -265,10 +283,9 @@ stopZookeeper() {
 	done
 
 	if [ ${isZookeeperDown} -eq 0 ]; then
-		log ERROR "GYMPB0000E: Zookeepeer is not stopping."
-		exit 1
+		emergencyExit "1" "GYMPB0000E: ${ZOOKEEPER_READABLE} is not stopping."
 	else
-		log INFO "GYMPB0000I: Zookeepeer has stopped."
+		log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} has stopped."
 		removePID ${ZOOKEEPER_APP_NAME}
 	fi
 }
@@ -276,12 +293,45 @@ stopZookeeper() {
 # ================
 # = Kafka ========
 # ================
+checkKafkaDependency() {
+	log INFO "GYMPB0000I: Do we need this ???"
+}
+
 startKafka() {
-	a=1
+	status=`isPidValid "${KAFKA_APP_NAME}"`
+	emergencyExit ${status} "GYMPB0000E: ${KAFKA_READABLE} is already running."
+
+	log INFO "GYMPB0000I: About to start ${KAFKA_READABLE}"
+	cd ${SERVICES_DIR}/${KAFKA_APP_NAME} && ./bin/kafka-server-start.sh ${SERVICES_DIR}/conf/${KAFKA_APP_NAME}/${KAFKA_APP_NAME}-server.properties >>${KAFKA_LOG} 2>>${KAFKA_LOG} &
+	writePID ${KAFKA_APP_NAME} ${!}
+	checkZookeeperStarted "dump" "/kafka/" ${KAFKA_READABLE}
 }
 
 stopKafka() {
-	a=1
+	log INFO "GYMPB0000I: About to stop ${KAFKA_READABLE}"
+	pid=`getPID ${KAFKA_APP_NAME}`
+	log DEBUG "GYMPB0000I: Attempting to kill processes associated with ${pid}"
+	killAssociatively ${pid}
+	
+	tryCount=${TRY_COUNT}
+	isKafkaDown=0
+
+	while [ $tryCount -ne 0 ]; do
+		psStatus=`getPsByName ${KAFKA_APP_NAME}.${KAFKA_APP_NAME}` # reference from https://github.com/kafka-dev/kafka/blob/master/bin/kafka-server-stop.sh
+		if [ -z "${psStatus}" ]; then
+			isKafkaDown=1
+			break
+		fi
+		sleep ${SLEEP_TIME}
+		tryCount=$(( ${tryCount} - 1 ))
+	done
+
+	if [ ${isKafkaDown} -eq 0 ]; then
+		emergencyExit "1" "GYMPB0000E: ${KAFKA_READABLE} is not stopping."
+	else
+		log INFO "GYMPB0000I: ${KAFKA_READABLE} has stopped."
+		removePID ${KAFKA_APP_NAME}
+	fi
 }
 
 # ==============
@@ -353,11 +403,13 @@ stopNpi() {
 # ==========================
 # = Start Rountine =========
 # ==========================
-# Each case responsible of start procedure for each application
 startRoutine() {
 	case "${1}" in
 		"${ZOOKEEPER_APP_NAME}")
 			startZookeeper
+		;;
+		"${KAFKA_APP_NAME}")
+			startKafka
 		;;
 		*)
 			log INFO "GYMPB0000I Application name is missing."
@@ -373,6 +425,9 @@ stopRountine() {
 	case "${1}" in 
 		"${ZOOKEEPER_APP_NAME}")
 			stopZookeeper
+		;;
+		"${KAFKA_APP_NAME}")
+			stopKafka
 		;;
 		*)
 			log INFO "GYMPB0000I Application name is missing."
@@ -480,13 +535,6 @@ exit 2;
 ############################################################
 ## M A I N #################################################
 ############################################################
-
-echo "Starting Kafka"
-KAFKA_LOG=${LOG_DIR}/${KAFKA}.log
-${SH_SHELL} ${DOCKER_DIR}/${KAFKA}/${BOOTSTRAP} >>${KAFKA_LOG} 2>>${KAFKA_LOG} &
-writePID ${KAFKA} ${!}
-checkZookeeperStarted "dump" "/kafka/"
-echo "Started Kafka"
 
 echo "Starting Hadoop"
 HADOOP_LOG=${LOG_DIR}/${HADOOP}.log
