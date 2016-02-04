@@ -4,6 +4,30 @@
 ## 1. Functions related to NPI
 ## ==========================================================
 
+startNpi2() {
+	EB_PORT=${WEB_PORT:-8081}
+	WEB_SEC_PORT=${WEB_SEC_PORT:-9443}
+	JMX_PORT=${JMX_PORT:-9010}
+
+	if [ ! -z $STORAGE_URL ];then
+	  JVM_OPT="${JVM_OPT} -Dstorage.uri=${STORAGE_URL}"
+	fi
+
+	if [ ! -z $ZK_URL ];then
+	  JVM_OPT="${JVM_OPT} -Dakka.cluster.seed.zookeeper.url=${ZK_URL} -Dkafka-snapshot-store.zookeeper.connect=${ZK_URL}/${ZKPREFIX}kafka -Dkafka-journal.zookeeper.connect=${ZK_URL}/${ZKPREFIX}kafka"
+	fi
+
+	if [ ! -z ${COMPONENT} ];then
+	   JVM_OPT="${JVM_OPT} -Dnpi.component=${COMPONENT}"
+	fi
+
+	if [ ! -z ${JDBC_SERVICE} ];then
+		JVM_OPT="${JVM_OPT} -Dstorage.jdbc-service=${JDBC_SERVICE}"
+	fi
+
+	export JVM_OPT
+}
+
 startNpi() {
 	log INFO "GYMPB0000I: About to start ${NPI_READABLE}"
 
@@ -24,6 +48,4 @@ stopNpi() {
 	else
 		emergencyExit "1" "GYMPB0000E: ${NPI_READABLE} has no associated PID file."
 	fi
-
-	
 }
