@@ -5,9 +5,25 @@
 ## ==========================================================
 
 startNpi() {
-	log INFO "GYMPB0000I: TODO."
+	log INFO "GYMPB0000I: About to start ${NPI_READABLE}"
+
+	${BASH_SHELL} ${DOCKER_DIR}/${NPI_APP_NAME}/${BOOTSTRAP} >/dev/null 2>>${NPI_LOG} &
+	writePID ${NPI_APP_NAME} ${!}
+
+	log INFO "GYMPB0000I: ${NPI_READABLE} has started."
 }
 
 stopNpi() {
-	log INFO "GYMPB0000I: TODO."
+	log INFO "GYMPB0000I: About to start ${NPI_READABLE}"
+
+	pid=`getPID ${NPI_APP_NAME}`
+	if [ -z "${pid}" ]; then
+		kill -SIGTERM ${pid}
+		removePID ${NPI_APP_NAME}
+		log INFO "GYMPB0000I: ${NPI_READABLE} has stopped."
+	else
+		emergencyExit "1" "GYMPB0000E: ${NPI_READABLE} has no associated PID file."
+	fi
+
+	
 }

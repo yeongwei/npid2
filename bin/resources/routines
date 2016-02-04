@@ -16,6 +16,12 @@ startRoutine() {
 		"${KAFKA_APP_NAME}")
 			startKafka
 		;;
+		"${HADOOP_APP_NAME}")
+			startHadoop
+		;;
+		"${NPI_APP_NAME}")
+			startNpi
+		;;
 		*)
 			log INFO "GYMPB0000I Application name is missing."
 			npidUsage
@@ -33,6 +39,12 @@ stopRountine() {
 		;;
 		"${KAFKA_APP_NAME}")
 			stopKafka
+		;;
+		"${HADOOP_APP_NAME}")
+			stopHadoop
+		;;
+		"${NPI_APP_NAME}")
+			stopNpi
 		;;
 		*)
 			log INFO "GYMPB0000I Application name is missing."

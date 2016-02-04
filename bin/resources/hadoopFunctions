@@ -2,10 +2,10 @@
 
 ## ==========================================================
 ## 1. Functions related to Hadoop
+## 2. Adapted from bootstraps.sh
 ## ==========================================================
 
 ##
-## From bootstraps.sh
 ## Pending:
 ##	1. Need to save PID somewhere, $WAIT_PID; E.g. saveNameNodePid() { ... }
 ##
@@ -30,13 +30,17 @@ nn_service() {
 			--hostnames "${SECONDARY_NAMENODES}" \
 			--script "${HADOOP_PREFIX}/bin/hdfs" $cmd secondarynamenode
 	  
-		if [ ${WAIT_PID} -eq 0 ]; then
-	  		WAIT_PID=$(cat /tmp/hadoop-*-secondarynamenode.pid |head -1)
+		# if [ ${WAIT_PID} -eq 0 ]; then
+		if [ -z "`getPID ${HADOOP_APP_NAME}`" ]; then
+	  		# WAIT_PID=$(cat /tmp/hadoop-*-secondarynamenode.pid |head -1)
+			writePID ${HADOOP_APP_NAME} "`cat /tmp/hadoop-*-secondarynamenode.pid | head -1`"
 	  	fi
 	fi
     
-    	if [ ${WAIT_PID} -eq 0 ];then
-		WAIT_PID=$(cat /tmp/hadoop-*-namenode.pid |head -1)
+    	# if [ ${WAIT_PID} -eq 0 ];then
+	if [ -z "`getPID ${HADOOP_APP_NAME}`" ]; then 
+		# WAIT_PID=$(cat /tmp/hadoop-*-namenode.pid |head -1)
+		writePID ${HADOOP_APP_NAME}  "`cat /tmp/hadoop-*-namenode.pid | head -1`"
     	fi
     
     	"${HADOOP_PREFIX}"/sbin/yarn-daemon.sh --config ${HADOOP_CONF_DIR} ${cmd} resourcemanager	
@@ -57,8 +61,11 @@ dt_service() {
 	log DEBUG "GYMPB0000I: ${cmd} YARN nodemanager"
 
 	"${HADOOP_PREFIX}"/sbin/yarn-daemon.sh --config ${HADOOP_CONF_DIR} ${cmd} nodemanager	
-	if [ ${WAIT_PID} -eq 0 ];then
-		WAIT_PID=$(cat /tmp/hadoop-*-datanode.pid |head -1)
+
+	# if [ ${WAIT_PID} -eq 0 ];then
+	if [ -z "`getPID ${HADOOP_APP_NAME}`" ]; then
+		# WAIT_PID=$(cat /tmp/hadoop-*-datanode.pid |head -1)
+		writePID ${HADOOP_APP_NAME} "`cat /tmp/hadoop-*-datanode.pid | head -1`"
 	fi
 }
 
@@ -89,17 +96,28 @@ copy_spark_jar_and_conf() {
 ##
 ## Comment:
 ##	1. Wrapper for calling initHadoopNameNode.sh
-##
+## Pending:
+##	1. Need to add ${USER_CONFIG} into npi_env.sh
+## 
 initHadoopNameNode() {
-	log INFO "initHadoopNameNode"
+	if [ "${USER_CONFIG}" != "true" ]; then
+		if [ ! -z ${NAMENODE} ] && [ "${NAMENODE}" == "true" ]; then
+			export NAMENODE_HOST=${NAMENODE_HOST:-"hdfs://$(hostname):9000/"} # should this come from npi_env.sh ???
+	  		(cd ${NPI_HOME} && ./bin/initHadoopNamenode.sh ${NAMENODE_HOST})
+		elif [ ! -z $NAMENODE_HOST ]; then
+	  		(cd ${NPI_HOME} && ./bin/initHadoopNamenode.sh ${NAMENODE_HOST})	
+		fi
+	fi
 }
 
 ##
-## There are initial errors not able surpress by this script ***
+## 1. To check Hadoop is REALLY up
+## 2. There are initial errors not able surpress by this script ***
 ##
 checkHadoop() {
 	isHadoopUp=0
 	tryCount=${TRY_COUNT}
+
 	cmd="${HADOOP_PREFIX}/bin/hdfs dfsadmin -report"
 	
 	while [ ${tryCount} -ne 0 ]; do
@@ -113,8 +131,7 @@ checkHadoop() {
 	done
 
 	if [ ${isHadoopUp} -eq 0 ]; then
-		log ERROR "GYMPB0000E: Hadoop is not starting."
-		exit 1
+		emergencyExit "1"  "GYMPB0000E: Hadoop is not starting."
 	fi
 	
 	isHadoopUp=0
@@ -132,15 +149,96 @@ checkHadoop() {
 	done
 
 	if [ ${isHadoopUp} -eq 0 ]; then
-		log ERROR "GYMPB0000E: Hadoop is not starting."
-		exit 1
+		emergencyExit "1" "GYMPB0000E: Hadoop is not starting."
 	fi
 }
 
-startaHadoop() {
-	log INFO "GYMPB0000E: TODO."
+##
+##
+##
+soureceHadoopEnv() {
+	source ${NPI_HOME}/services/hadoop/etc/hadoop/hadoop-env.sh
+
+	if [ -f ${NPI_HOME}/services/spark/conf/spark-env.sh ]; then
+		source ${NPI_HOME}/services/spark/conf/spark-env.sh
+	fi
 }
 
+##
+## Pending:
+##	1. Need to include ${NAMENODE} into npi_env.
+##
+startHadoop() {
+	log INFO "GYMPB0000I: About to start ${HADOOP_READABLE}"
+
+	soureceHadoopEnv
+
+	export PATH=$PATH:${HADOOP_HOME}/bin
+
+	if [ ! -z ${NAMENODE} ] && [ "${NAMENODE}" == "true" ]; then
+		if [ ! -d ${NPI_HOME}/work/dfs ]; then
+			log INFO "GYMPB0000I: Starting as NAMENODE and no HDFS found, formating new HDFS."
+			${NPI_HOME}/services/hadoop/bin/hdfs namenode -format
+		fi
+	
+		nn_service start
+		copy_spark_jar_and_conf
+	fi
+
+	dt_service start
+
+	checkHadoop
+
+	log INFO "GYMPB0000I: ${HADOOP_READABLE} has started."
+}
+
+## Invoke boostraps.sh style
+startHadoop2() {
+	log INFO "GYMPB0000I: About to start ${HADOOP_READABLE}"
+	
+	${BASH_SHELL} ${DOCKER_DIR}/${HADOOP}/${BOOTSTRAP} >>${HADOOP_LOG} 2>>${HADOOP_LOG} & # Need /bin/bash instead of /bin/sh ???
+	writePID ${HADOOP} ${!}
+	checkHadoop
+
+	log INFO "GYMPB0000I: ${HADOOP_READABLE} has started."
+}
+
+##
+## Pending:
+##	1. Consider sending SIGTERM to PID ??? 
+##
 stopHadoop() {
-	log INFO "GYMPB0000E: TODO."
+	log INFO "GYMPB0000I: About to stop ${HADOOP_READABLE}"
+	
+	soureceHadoopEnv
+
+	pid=`getPID ${HADOOP_APP_NAME}`
+	if [ -z "$pid" ]; then
+		log INFO "GYMPB0000I: ${HADOOP_READABLE} was not running."
+	else
+		dt_service stop
+		if [ ! -z "${NAMENODE}" ]; then
+			nn_service stop
+		fi
+
+		tryCount=${TRY_COUNT}
+		isHadoopDown=0
+
+		while [ $tryCount -ne 0 ]; do
+			psStatus=`getPsByName ${HADOOP_READABLE}`
+			if [ -z "${psStatus}" ]; then
+				isHadoopDown=1
+				break
+			fi
+			sleep ${SLEEP_TIME}
+			tryCount=$(( ${tryCount} - 1 ))
+		done
+		
+		if [ ${isHadoopDown} -eq 0 ]; then
+			emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} is not stopping."
+		else
+			log INFO "GYMPB0000I: ${HADOOP_READABLE} has stopped."
+			removePID ${HADOOP_APP_NAME}
+		fi
+	fi
 }

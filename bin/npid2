@@ -8,11 +8,13 @@
 ZOOKEEPER_APP_NAME="zookeeper"
 KAFKA_APP_NAME="kafka"
 HADOOP_APP_NAME="hadoop"
+NPI_APP_NAME="npi"
 
 # Application names (human readable)
 ZOOKEEPER_READABLE="Zookeeper"
 KAFKA_READABLE="Kafka"
 HADOOP_READABLE="Hadoop"
+NPI_READABLE="NPI"
 
 # Reflects folder names inside docker directory
 ZOOKEEPER="zk"
@@ -54,10 +56,12 @@ BASH_SHELL=`which bash`
 SERVICES_DIR=${PROG_HOME}/services
 RESOURCES_DIR=${BIN_DIR}/resources
 
-# New exports
+# Environment exports
 export NPI_HOME=${PROG_HOME}
+
 export NAMENODE=true
 export USER_CONFIG=false
+
 export HADOOP_PREFIX=${SERVICES_DIR}/hadoop
 export STORAGE_URL=$HADOOP_NAMENODE_URL
 export ZK_URL=$ZOOKEEP_URL
@@ -67,8 +71,11 @@ LOG_DIR=${PROG_HOME}/log
 CONSOLE_LOG=${LOG_DIR}/${PROG_DNAME}.log
 VAR_DIR=${PROG_HOME}/var
 
+# Logs
 ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER_APP_NAME}.log
-KAFKA_LOG=${LOG_DIR}/${KAFKA}.log
+KAFKA_LOG=${LOG_DIR}/${KAFKA_APP_NAME}.log
+HADOOP_LOG=${LOG_DIR}/${HADOOP_APP_NAME}.log
+NPI_LOG=${LOG_DIR}/${NPI_APP_NAME}.log
 
 if [ ! -d "${LOG_DIR}" ]; then
   mkdir -p ${LOG_DIR}
@@ -107,10 +114,13 @@ showVersion() {
 source ${RESOURCES_DIR}/functions
 source ${RESOURCES_DIR}/zookeeperFunctions
 source ${RESOURCES_DIR}/kafkaFunctions
+source ${RESOURCES_DIR}/hadoopFunctions
 source ${RESOURCES_DIR}/npiFunctions
 source ${RESOURCES_DIR}/routines
 
 # Assuming USERS has modified this file
+# Pending:
+# 	1. The npi_env.sh needs to be updated accordingly
 source ${DOCKER_DIR}/${ENV_FILE}
 
 ## =========================================================
@@ -124,12 +134,11 @@ if [ $# -lt 1 ]; then
 fi
 
 if [ $# -gt 2 ]; then
-	log WARNING "GYMPB0000W Too many arguments."
+	log WARNING "GYMPB0000W: Too many arguments."
 fi
 
 ARG1=$1
 ARG2=$2
-# echo "ARG1: ${ARG1}, ARG2: ${ARG2}" # Development purpose only
 
 case "${ARG1}" in
 	start)
@@ -158,24 +167,5 @@ case "${ARG1}" in
 	*)
 	;;
 esac
-
-exit 2; 
-
-############################################################
-## M A I N #################################################
-############################################################
-
-echo "Starting Hadoop"
-HADOOP_LOG=${LOG_DIR}/${HADOOP}.log
-${BASH_SHELL} ${DOCKER_DIR}/${HADOOP}/${BOOTSTRAP} >>${HADOOP_LOG} 2>>${HADOOP_LOG} & # Need /bin/bash instead of /bin/sh ???
-writePID ${HADOOP} ${!}
-checkHadoop
-echo "Started Hadoop"
-
-echo "Starting NPI with Options"
-NPI_LOG=${LOG_DIR}/${NPI}.log
-${BASH_SHELL} ${DOCKER_DIR}/${NPI}/${BOOTSTRAP} >/dev/null 2>>${NPI_LOG} &
-writePID ${NPI} ${!}
-echo "Started NPI with Options"
 
 exit 0
