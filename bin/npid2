@@ -108,7 +108,6 @@ showVersion() {
 
 ##
 ## E.g.
-## npid start - starts all framework + npi
 ## npid start zookeeper
 ## npid start kafka
 ## npid start hadoop
@@ -340,6 +339,8 @@ stopKafka() {
 
 ##
 ## From bootstraps.sh
+## Pending:
+##	1. Need to save PID somewhere, $WAIT_PID; E.g. saveNameNodePid() { ... }
 ##
 nn_service() {
 	cmd=$1
@@ -347,29 +348,82 @@ nn_service() {
 	
 	log DEBUG "GYMPB0000I: ${cmd} namenodes on [${NAMENODES}]"
 	
-	"$HADOOP_PREFIX/sbin/hadoop-daemon.sh" \
-	  --config "$HADOOP_CONF_DIR" \
-	  --hostnames "$NAMENODES" \
-	  --script "$HADOOP_PREFIX/bin/hdfs" $cmd namenode 
+	"${HADOOP_PREFIX}/sbin/hadoop-daemon.sh" \
+		--config "${HADOOP_CONF_DIR}" \
+		--hostnames "${NAMENODES}" \
+		--script "${HADOOP_PREFIX}/bin/hdfs" ${cmd} namenode 
 	  
-	SECONDARY_NAMENODES=$($HADOOP_PREFIX/bin/hdfs getconf -secondarynamenodes 2>/dev/null)
+	SECONDARY_NAMENODES=$(${HADOOP_PREFIX}/bin/hdfs getconf -secondarynamenodes 2>/dev/null)
 	
-	if [ -n "$SECONDARY_NAMENODES" ]; then
-	  echo "$cmd secondary namenodes [$SECONDARY_NAMENODES]"
+	if [ -n "${SECONDARY_NAMENODES}" ]; then
+		log DEBUG "GYMPB0000I: ${cmd} secondary namenodes [${SECONDARY_NAMENODES}]"
 	
-	  "$HADOOP_PREFIX/sbin/hadoop-daemon.sh" \
-	      --config "$HADOOP_CONF_DIR" \
-	      --hostnames "$SECONDARY_NAMENODES" \
-	      --script "$HADOOP_PREFIX/bin/hdfs" $cmd secondarynamenode
-	  if [ $WAIT_PID -eq 0 ];then
-	  	WAIT_PID=$(cat /tmp/hadoop-*-secondarynamenode.pid |head -1)
-	  fi
+	  	"${HADOOP_PREFIX}/sbin/hadoop-daemon.sh" \
+			--config "${HADOOP_CONF_DIR}" \
+			--hostnames "${SECONDARY_NAMENODES}" \
+			--script "${HADOOP_PREFIX}/bin/hdfs" $cmd secondarynamenode
+	  
+		if [ ${WAIT_PID} -eq 0 ]; then
+	  		WAIT_PID=$(cat /tmp/hadoop-*-secondarynamenode.pid |head -1)
+	  	fi
 	fi
     
-    if [ $WAIT_PID -eq 0 ];then
-	  	WAIT_PID=$(cat /tmp/hadoop-*-namenode.pid |head -1)
+    	if [ ${WAIT_PID} -eq 0 ];then
+		WAIT_PID=$(cat /tmp/hadoop-*-namenode.pid |head -1)
+    	fi
+    
+    	"${HADOOP_PREFIX}"/sbin/yarn-daemon.sh --config ${HADOOP_CONF_DIR} ${cmd} resourcemanager	
+}
+
+##
+## Pending:
+##	1. Need to save PID somewhere
+##
+dt_service() {
+	cmd=${1}
+	log DEBUG "GYMPB0000I: ${cmd} datanode"
+
+	"${HADOOP_PREFIX}/sbin/hadoop-daemon.sh" \
+		--config "${HADOOP_CONF_DIR}" \
+	    	--script "${HADOOP_PREFIX}/bin/hdfs" ${cmd} datanode
+
+	log DEBUG "GYMPB0000I: ${cmd} YARN nodemanager"
+
+	"${HADOOP_PREFIX}"/sbin/yarn-daemon.sh --config ${HADOOP_CONF_DIR} ${cmd} nodemanager	
+	if [ ${WAIT_PID} -eq 0 ];then
+		WAIT_PID=$(cat /tmp/hadoop-*-datanode.pid |head -1)
 	fi
-	"$HADOOP_PREFIX"/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR $cmd resourcemanager	
+}
+
+##
+## Comment:
+## 	1. Not changing the paths to variables yet to remain apparent
+##
+copy_spark_jar_and_conf() {
+	log DEBUG "GYMPB0000I: Waiting for recovering from safemode"
+	$NPI_HOME/services/hadoop/bin/hdfs dfsadmin -safemode wait
+
+	log DEBUG "GYMPB0000I: Creating /work/hadoop-conf folder"
+	$NPI_HOME/services/hadoop/bin/hdfs dfs -mkdir -p /work/hadoop-conf
+
+	log DEBUG "GYMPB0000I: Copying hadoop config files to hdfs"
+	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/core-site.xml /work/hadoop-conf/core-site.xml
+	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/hdfs-site.xml /work/hadoop-conf/hdfs-site.xml
+	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/yarn-site.xml /work/hadoop-conf/yarn-site.xml
+	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/spark-defaults.conf /work/hadoop-conf/spark-defaults.conf
+
+	log DEBUG "Creating /work/spark-lib folder"
+	$NPI_HOME/services/hadoop/bin/hdfs dfs -mkdir -p /work/spark-lib
+
+	log DEBUG "Copying spark assembly jar to hdfs"
+	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/spark/lib/spark-assembly-*.jar /work/spark-lib/spark-assembly-hadoop.jar
+}
+
+##
+## Comment:
+##	1. Wrapper for calling initHadoopNameNode.sh
+##
+initHadoopNameNode() {
 }
 
 ##
