@@ -45,27 +45,31 @@ stopZookeeper() {
 	log INFO "GYMPB0000I: About to stop ${ZOOKEEPER_READABLE}"
 	# reference from https://github.com/linkedin/linkedin-zookeeper/blob/master/org.linkedin.zookeeper-server/src/cmdline/resources/bin/zkServer.sh
 	pid=`getPID ${ZOOKEEPER_APP_NAME}`
-	log DEBUG "GYMPB0000I: Attempting to kill processes associated with ${pid}"
-	killAssociatively ${pid}
-
-	tryCount=${TRY_COUNT}
-	isZookeeperDown=0
-	
-	while [ $tryCount -ne 0 ]; do
-		psStatus=`getPsByName ${ZOOKEEPER_APP_NAME}`
-		if [ -z "${psStatus}" ]; then
-			isZookeeperDown=1
-			break
-		fi
-		sleep ${SLEEP_TIME}
-		tryCount=$(( ${tryCount} - 1 ))
-	done
-
-	if [ ${isZookeeperDown} -eq 0 ]; then
-		emergencyExit "1" "GYMPB0000E: ${ZOOKEEPER_READABLE} is not stopping."
+	if [ -z "$pid" ]; then
+		log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} was not running."
 	else
-		log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} has stopped."
-		removePID ${ZOOKEEPER_APP_NAME}
-	fi
+		log DEBUG "GYMPB0000I: Attempting to kill processes associated with ${pid}"
+		killAssociatively ${pid}
+
+		tryCount=${TRY_COUNT}
+		isZookeeperDown=0
+	
+		while [ $tryCount -ne 0 ]; do
+			psStatus=`getPsByName ${ZOOKEEPER_APP_NAME}`
+			if [ -z "${psStatus}" ]; then
+				isZookeeperDown=1
+				break
+			fi
+			sleep ${SLEEP_TIME}
+			tryCount=$(( ${tryCount} - 1 ))
+		done
+
+		if [ ${isZookeeperDown} -eq 0 ]; then
+			emergencyExit "1" "GYMPB0000E: ${ZOOKEEPER_READABLE} is not stopping."
+		else
+			log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} has stopped."
+			removePID ${ZOOKEEPER_APP_NAME}
+		fi
+	fi	
 }
 

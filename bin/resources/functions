@@ -103,8 +103,7 @@ getPID() {
 	if [ -f ${VAR_DIR}/${1}.pid ]; then
 		echo -e `head -1 ${VAR_DIR}/${1}.pid` # cat or head ???
 	else
-		log ERROR "GYMPB0000E: PID does not exist."
-		exit -1
+		echo ""
 	fi
 }
 
