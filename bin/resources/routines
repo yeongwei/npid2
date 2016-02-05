@@ -47,8 +47,58 @@ stopRountine() {
 			stopNpi ${1}
 		;;
 		*)
-			log INFO "GYMPB0000I Application name is missing."
+			log INFO "GYMPB0000I: Application name is missing."
 			npidUsage
 		;;
 	esac
+}
+
+##
+## For CMD "restart"
+##
+restartRoutine() {
+	case "${1}" in 
+		"${ZOOKEEPER_APP_NAME}")
+			stopZookeeper
+			sleep ${SLEEP_TIME}
+			startZookeeper
+		;;
+		"${KAFKA_APP_NAME}")
+			stopKafka
+			sleep ${SLEEP_TIME}
+			startKafka
+		;;
+		"${HADOOP_APP_NAME}")
+			stopHadoop
+			sleep ${SLEEP_TIME}
+			startHadoop
+		;;
+		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
+			stopNpi ${1}
+			sleep ${SLEEP_TIME}
+			startNpi ${1}
+		;;
+		*)
+			log INFO "GYMPB0000I: Application name is missing."
+			npidUsage
+		;;
+	esac
+}
+
+##
+## For CMD "kill"
+##
+killRoutine() {
+	log INFO "GYMPB0000I: TODO"
+}
+
+##
+## For CMD "status"
+##
+statusRoutine() {
+	if [ -z "${1}" ]; then
+		checkAllStatus
+	else
+		checkStatus ${1}
+	fi
 }

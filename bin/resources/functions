@@ -53,18 +53,18 @@ isPidValid() {
 	pidFile=${VAR_DIR}/${1}.pid
 
 	if [ -f ${pidFile} ]; then 
-		pid=`cat ${pidFile}`
+		pid=`head -1 ${pidFile}`
 		if [ -z "${pid}" ]; then # pid file is empty
-			echo 0
+			echo -2
 		else # pid file not empty
 			if [ -z "`ps ax | grep ${pid} | grep -v grep`" ]; then # pid is not within ps
-				echo 0
+				echo -3
 			else # pid is valid within ps
 				echo 1
 			fi
 		fi	
 	else # no pid file exists
-		echo 0
+		echo -1
 	fi
 }
 
@@ -153,7 +153,7 @@ checkAllStatus() {
 			appName=`echo ${pidFile} | cut -d. -f1`
 			appPid=`head -1 ${VAR_DIR}/${pidFile}` # should use cat or head ???
 
-			pidStatus=`isPidValid ${appPid}`
+			pidStatus=`isPidValid ${appName}`
 			if [ ${pidStatus} -eq 0 ]; then
 				log INFO "GYMPB0116I: Application ${appName} is not running." # when is the best time to remove obsolete PID files ???
 			else
