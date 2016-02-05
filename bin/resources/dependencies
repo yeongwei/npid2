@@ -1,0 +1,67 @@
+#!/bin/bash
+
+##
+##
+##
+isDown() {
+	pid=`getPID ${1}`
+	if [ ! -z "$pid" ]; then 
+		emergencyExit "1" "GYMPB0000I: Failed dependee check. ${1} is still running"
+	fi
+}
+
+##
+##
+##
+isUp() {
+	pid=`getPID ${1}`
+	if [ -z "$pid" ]; then 
+		emergencyExit "1" "GYMPB0000I: Failed dependent check. ${1} is not running."
+	fi
+}
+
+##
+## 1. "I depend on someone"
+##
+checkDependent() {
+	case "${1}" in
+		"${ZOOKEEPER_APP_NAME}")
+		;;
+		"${KAFKA_APP_NAME}")
+			isUp ${ZOOKEEPER_APP_NAME}
+		;;
+		"${HADOOP_APP_NAME}")
+			isUp ${KAFKA_APP_NAME}
+		;;
+		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
+			isUp ${HADOOP_APP_NAME}
+		;;
+		*)
+			emergencyExit "1" "GYMPB0000I: Unable to resolve dependent."
+		;;
+	esac
+	
+}
+
+##
+## 1. "Someone depends on me"
+##
+checkDependentee() {
+	case "${1}" in
+		"${ZOOKEEPER_APP_NAME}")
+			isDown ${KAFKA_APP_NAME}
+		;;
+		"${KAFKA_APP_NAME}")
+			isDown ${HADOOP_APP_NAME}
+		;;
+		"${HADOOP_APP_NAME}")
+			isDown ${NPI_APP_NAME} # need to extend to support other npi-*
+		;;
+		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
+		;;
+		*)
+			emergencyExit "1" "GYMPB0000I: Unable to resolve dependentee."
+		;;
+	esac
+	
+}
