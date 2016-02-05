@@ -158,16 +158,12 @@ case "${ARG1}" in
 		stopRountine ${ARG2}
 	;;
 	restart)
+		restartRoutine ${ARG2}
 	;;
 	kill)
 	;;
 	status)
-		# statusRoutine
-		if [ -z "${ARG2}" ]; then
-			checkAllStatus
-		else
-			checkStatus ${ARG2}
-		fi
+		statusRoutine ${ARG2}
 	;;
 	version)
 		showVersion
