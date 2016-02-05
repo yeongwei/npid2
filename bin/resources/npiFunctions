@@ -4,10 +4,80 @@
 ## 1. Functions related to NPI
 ## ==========================================================
 
-startNpi2() {
-	EB_PORT=${WEB_PORT:-8081}
-	WEB_SEC_PORT=${WEB_SEC_PORT:-9443}
-	JMX_PORT=${JMX_PORT:-9010}
+##
+## Usage: getPortResolution <default_port> <component_name> 
+##
+getPortResolution() {
+	defaultPort=${1}
+	componentName=${2}
+
+	case "${componentName}" in 
+		"${NPI_STORAGE_APP_NAME}") 	
+			echo $(( $defaultPort + 10 ))
+		;;
+		"${NPI_ANALYTICS_APP_NAME}") 
+			echo $(( $defaultPort + 20 ))
+		;;
+		"${NPI_COLLECTOR_APP_NAME}") 
+			echo $(( $defaultPort + 30 ))
+		;;
+		"${NPI_UI_APP_NAME}") 
+			echo $defaultPort
+		;;
+		"${NPI_APP_NAME}")
+			echo $defaultPort
+		;;
+		*)
+			emergencyExit "1" "GYMPB0000E: Port resolution failed due to invalid NPI component name."
+		;;
+	esac
+}
+
+##
+## Pending:
+##	1. Variable ${COMPONENT} should come from stdin
+##
+startNpi() {
+	log INFO "GYMPB0000I: About to start ${1}" 	
+
+	if [ -z "${1}" ]; then	
+		emergencyExit "1" "GYMPB0000E: Please provide a ${NPI_APP_NAME} component name."
+	fi 	
+	
+	case "${1}" in
+		"${NPI_STORAGE_APP_NAME}") ;;
+		"${NPI_ANALYTICS_APP_NAME}") ;;
+		"${NPI_COLLECTOR_APP_NAME}") ;;
+		"${NPI_UI_APP_NAME}") ;;
+		"${NPI_APP_NAME}") ;;
+		*)
+			emergencyExit "1" "GYMPB0000E: Please provide a valid ${NPI_APP_NAME} component name."
+		;;
+	esac
+	COMPONENT=${1}
+
+	# WEB_PORT=${WEB_PORT:-8081}
+	# WEB_SEC_PORT=${WEB_SEC_PORT:-9443}
+	# JMX_PORT=${JMX_PORT:-9010}
+
+	WEB_PORT=`getPortResolution 8081 ${COMPONENT}`
+	log DEBUG "GYMPB0000D: Http Port - ${WEB_PORT}"
+
+	WEB_SEC_PORT=`getPortResolution 9443 ${COMPONENT}`
+	log DEBUG "GYMPB0000D: Https Port - ${WEB_SEC_PORT}"
+
+	JMX_PORT=`getPortResolution 9010 ${COMPONENT}`
+	log DEBUG "GYMPB0000D: Jmx Port - ${JMX_PORT}"
+
+	NETTY_PORT=`getPortResolution 2552 ${COMPONENT}`
+	log DEBUG "GYMPB0000D: Netty Port - ${NETTY_PORT}"
+
+	COMPONENT=`echo ${COMPONENT} | sed s/npi\-//`	
+	if [ ${COMPONENT} == "${NPI_APP_NAME}" ]; then
+		COMPONENT=""
+	fi
+
+	JVM_OPT="${JVM_OPT} -Dhttp.port=${WEB_PORT} -Dhttps.port=${WEB_SEC_PORT} -Djmx.port=${JMX_PORT} -Dakka.remote.netty.tcp.port=${NETTY_PORT} -Dakka.remote.netty.tcp.bind-port=${NETTY_PORT}"
 
 	if [ ! -z $STORAGE_URL ];then
 	  JVM_OPT="${JVM_OPT} -Dstorage.uri=${STORAGE_URL}"
@@ -26,9 +96,14 @@ startNpi2() {
 	fi
 
 	export JVM_OPT
+
+	${NPI_HOME}/bin/npi > /dev/null 2>> ${NPI_LOG} &
+	writePID ${1} ${!}
+
+	log INFO "GYMPB0000I: ${1} has started" 
 }
 
-startNpi() {
+startNpi2() {
 	log INFO "GYMPB0000I: About to start ${NPI_READABLE}"
 
 	${BASH_SHELL} ${DOCKER_DIR}/${NPI_APP_NAME}/${BOOTSTRAP} >/dev/null 2>>${NPI_LOG} &
@@ -38,14 +113,14 @@ startNpi() {
 }
 
 stopNpi() {
-	log INFO "GYMPB0000I: About to start ${NPI_READABLE}"
+	log INFO "GYMPB0000I: About to stop ${1}"
 
-	pid=`getPID ${NPI_APP_NAME}`
+	pid=`getPID ${1}`
 	if [ -z "${pid}" ]; then
-		kill -SIGTERM ${pid}
-		removePID ${NPI_APP_NAME}
-		log INFO "GYMPB0000I: ${NPI_READABLE} has stopped."
-	else
 		emergencyExit "1" "GYMPB0000E: ${NPI_READABLE} has no associated PID file."
+	else
+		kill -SIGTERM ${pid}
+		removePID ${1}
+		log INFO "GYMPB0000I: ${1} has stopped."
 	fi
 }
