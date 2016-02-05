@@ -19,8 +19,8 @@ startRoutine() {
 		"${HADOOP_APP_NAME}")
 			startHadoop
 		;;
-		"${NPI_APP_NAME}")
-			startNpi
+		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
+			startNpi ${1}
 		;;
 		*)
 			log INFO "GYMPB0000I Application name is missing."
@@ -43,8 +43,8 @@ stopRountine() {
 		"${HADOOP_APP_NAME}")
 			stopHadoop
 		;;
-		"${NPI_APP_NAME}")
-			stopNpi
+		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
+			stopNpi ${1}
 		;;
 		*)
 			log INFO "GYMPB0000I Application name is missing."
