@@ -13,6 +13,8 @@ startKafka() {
 	emergencyExit ${status} "GYMPB0000E: ${KAFKA_READABLE} is already running."
 
 	log INFO "GYMPB0000I: About to start ${KAFKA_READABLE}"
+	checkDependent ${KAFKA_APP_NAME}
+
 	cd ${SERVICES_DIR}/${KAFKA_APP_NAME} && ./bin/kafka-server-start.sh ${SERVICES_DIR}/conf/${KAFKA_APP_NAME}/${KAFKA_APP_NAME}-server.properties >>${KAFKA_LOG} 2>>${KAFKA_LOG} &
 	writePID ${KAFKA_APP_NAME} ${!}
 	checkZookeeperStarted "dump" "/kafka/" ${KAFKA_READABLE}
@@ -20,6 +22,8 @@ startKafka() {
 
 stopKafka() {
 	log INFO "GYMPB0000I: About to stop ${KAFKA_READABLE}"
+	checkDependentee ${KAFKA_APP_NAME}
+
 	pid=`getPID ${KAFKA_APP_NAME}`
 	if [ -z "$pid" ]; then
 		log INFO "GYMPB0000I: ${KAFKA_READABLE} was not running."

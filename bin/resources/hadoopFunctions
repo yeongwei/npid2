@@ -170,6 +170,7 @@ soureceHadoopEnv() {
 ##
 startHadoop() {
 	log INFO "GYMPB0000I: About to start ${HADOOP_READABLE}"
+	checkDependent ${HADOOP_APP_NAME}
 
 	soureceHadoopEnv
 
@@ -194,8 +195,8 @@ startHadoop() {
 
 ## Invoke boostraps.sh style
 startHadoop2() {
-	log INFO "GYMPB0000I: About to start ${HADOOP_READABLE}"
-	
+	log INFO "GYMPB0000I: About to start ${HADOOP_READABLE}"	
+
 	${BASH_SHELL} ${DOCKER_DIR}/${HADOOP}/${BOOTSTRAP} >>${HADOOP_LOG} 2>>${HADOOP_LOG} & # Need /bin/bash instead of /bin/sh ???
 	writePID ${HADOOP_APP_NAME} ${!}
 	checkHadoop
@@ -209,7 +210,8 @@ startHadoop2() {
 ##
 stopHadoop() {
 	log INFO "GYMPB0000I: About to stop ${HADOOP_READABLE}"
-	
+	checkDependentee ${HADOOP_APP_NAME}
+
 	soureceHadoopEnv
 
 	pid=`getPID ${HADOOP_APP_NAME}`

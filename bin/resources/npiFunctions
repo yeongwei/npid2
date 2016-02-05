@@ -38,7 +38,8 @@ getPortResolution() {
 ##	1. Variable ${COMPONENT} should come from stdin
 ##
 startNpi() {
-	log INFO "GYMPB0000I: About to start ${1}" 	
+	log INFO "GYMPB0000I: About to start ${1}"
+	checkDependent ${NPI_APP_NAME}	
 
 	if [ -z "${1}" ]; then	
 		emergencyExit "1" "GYMPB0000E: Please provide a ${NPI_APP_NAME} component name."

@@ -115,6 +115,13 @@ killAssociatively() {
 }
 
 ##
+## Kill(15) pid and it's associated processes
+##
+killAssociatively9() {
+	ps -ef | grep ${1} | grep -v grep | awk '{print $2}' | xargs -i kill -9 {}
+}
+
+##
 ## Usage: stopApplication {<application_name>} {<application_readable_name>}
 ##
 stopApplication() {

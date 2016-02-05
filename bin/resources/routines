@@ -89,7 +89,26 @@ restartRoutine() {
 ## For CMD "kill"
 ##
 killRoutine() {
-	log INFO "GYMPB0000I: TODO"
+	case "${1}" in 
+		"${ZOOKEEPER_APP_NAME}") ;;
+		"${KAFKA_APP_NAME}") ;;
+		"${HADOOP_APP_NAME}") ;;
+		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}") ;;
+		*)
+			log INFO "GYMPB0000I: Application name is missing."
+			npidUsage
+			exit -1 # explicitly, since no error
+		;;
+	esac
+	
+	pid=`getPID ${1}`
+	if [ -z "${pid}" ]; then
+		log INFO "GYMPB0000I: ${1} is not started."
+	else 
+		killAssociatively9 ${pid}
+		removePID ${1}
+		log INFO "GYMPB0000I: ${1} has been killed."
+	fi
 }
 
 ##

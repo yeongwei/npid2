@@ -43,6 +43,8 @@ startZookeeper() {
 
 stopZookeeper() {
 	log INFO "GYMPB0000I: About to stop ${ZOOKEEPER_READABLE}"
+	checkDependentee ${ZOOKEEPER_APP_NAME}	
+
 	# reference from https://github.com/linkedin/linkedin-zookeeper/blob/master/org.linkedin.zookeeper-server/src/cmdline/resources/bin/zkServer.sh
 	pid=`getPID ${ZOOKEEPER_APP_NAME}`
 	if [ -z "$pid" ]; then
