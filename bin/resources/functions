@@ -127,6 +127,8 @@ stopApplication() {
 ## Example,
 ## 	1. checkStatus zookeeper
 ##	2. checkStatus npi-storage
+## Pending:
+##	1. More defensive input checking ???
 ##
 checkStatus() {
 	if [ -f ${VAR_DIR}/${1}.pid ]; then
@@ -150,7 +152,13 @@ checkAllStatus() {
 		for pidFile in "${allAvailPidFile2[@]}"; do
 			appName=`echo ${pidFile} | cut -d. -f1`
 			appPid=`head -1 ${VAR_DIR}/${pidFile}` # should use cat or head ???
-			log INFO "GYMPB0116I: Application ${appName} is running on pid ${appPid}."
+
+			pidStatus=`isPidValid ${appPid}`
+			if [ ${pidStatus} -eq 0 ]; then
+				log INFO "GYMPB0116I: Application ${appName} is not running." # when is the best time to remove obsolete PID files ???
+			else
+				log INFO "GYMPB0116I: Application ${appName} is running on pid ${appPid}."
+			fi
 		done
 	fi 
 }
