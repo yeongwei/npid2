@@ -110,28 +110,63 @@ restartRoutine() {
 ##
 ## For CMD "kill"
 ##
+killRoutineHelper() {
+	pid=`getPID ${1}`
+	if [ -z "${pid}" ]; then
+		log INFO "GYMPB0000I: ${1} is not started."
+	else 
+		killAssociatively9 ${pid}
+		
+		tryCount=${TRY_COUNT}
+		isKilled=0
+
+		while [ $tryCount -ne 0 ]; do
+			psStatus=`ps -ef | grep ${pid} | grep -v grep`
+			if [ -z "${psStatus}" ]; then
+				isKilled=1
+				break
+			fi
+			sleep ${SLEEP_TIME}
+			tryCount=$(( ${tryCount} - 1 ))
+		done
+		
+		if [ ${isKilled} -eq 1 ]; then
+			removePID ${1}
+			log INFO "GYMPB0000I: ${1} has been killed."
+		else
+			log ERROR "GYMPB0000I: Unable to kill ${1} with PID ${pid}."
+		fi
+	fi
+}
+
 killRoutine() {
 	case "${1}" in 
 		"${ZOOKEEPER_APP_NAME}") ;;
 		"${KAFKA_APP_NAME}") ;;
 		"${HADOOP_APP_NAME}") ;;
 		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}") ;;
+		"all")
+			# This rountine is not clean, need revision ???
+			killRoutineHelper "npi"
+			sleep ${SLEEP_TIME}
+			killRoutineHelper "hadoop"
+			sleep ${SLEEP_TIME}
+			killRoutineHelper "kafka"
+			sleep ${SLEEP_TIME}
+			killRoutineHelper "zookeeper"
+			exit 0 # Ends here
+		;;
 		*)
 			log INFO "GYMPB0000I: Application name is missing."
 			npidUsage
-			exit -1 # explicitly, since no error
+			exit 0 # explicitly, since no error
 		;;
 	esac
 	
-	pid=`getPID ${1}`
-	if [ -z "${pid}" ]; then
-		log INFO "GYMPB0000I: ${1} is not started."
-	else 
-		killAssociatively9 ${pid}
-		removePID ${1}
-		log INFO "GYMPB0000I: ${1} has been killed."
-	fi
+	killRoutineHelper ${1}
 }
+
+
 
 ##
 ## For CMD "status"
