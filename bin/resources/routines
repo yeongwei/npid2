@@ -119,7 +119,7 @@ killRoutine() {
 ## For CMD "status"
 ##
 statusRoutine() {
-	if [ -z "${1}" ]; then
+	if [ -z "${1}" ] || [ "${1}" == "all" ]; then
 		checkAllStatus
 	else
 		checkStatus ${1}
