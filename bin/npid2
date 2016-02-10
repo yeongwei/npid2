@@ -241,9 +241,10 @@ case "${ARG1}" in
 		showVersion
 	;;
 	help)
-		npiUsage
+		npidUsage
 	;;
 	*)
+		npidUsage
 	;;
 esac
 
