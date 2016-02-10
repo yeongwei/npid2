@@ -40,7 +40,7 @@ if [ -z "$PROG_HOME" ] ; then
 fi
 
 ## =========================================================
-## New variables that are global
+## New global variables
 ## =========================================================
 
 # Application names
@@ -102,6 +102,9 @@ ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER_APP_NAME}.log
 KAFKA_LOG=${LOG_DIR}/${KAFKA_APP_NAME}.log
 HADOOP_LOG=${LOG_DIR}/${HADOOP_APP_NAME}.log
 NPI_LOG=${LOG_DIR}/${NPI_APP_NAME}.log
+
+DOCKER_DIR=${PROG_HOME}/docker		
+ENV_FILE="npi_env.sh"
 
 if [ ! -d "${LOG_DIR}" ]; then
   mkdir -p ${LOG_DIR}
@@ -200,7 +203,7 @@ source ${RESOURCES_DIR}/routines
 source ${DOCKER_DIR}/${ENV_FILE}
 
 ## =========================================================
-## Controller
+## Main controller
 ## =========================================================
 
 # Manage input arguments from here
