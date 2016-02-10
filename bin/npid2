@@ -41,6 +41,8 @@ fi
 
 ## =========================================================
 ## New global variables
+## Pending:
+##	1. Should these variables be consolidated into one file ???
 ## =========================================================
 
 # Application names
@@ -82,16 +84,10 @@ RESOURCES_DIR=${BIN_DIR}/resources
 # Environment exports
 # Pending:
 #	1. Need to segregate out exports for each individual application
-#	2. Move relevant variables into npi_env.sh
+#	2. Move relevant variables into npi_env.sh; currently resides in bin/resource/envSettings
 export NPI_HOME=${PROG_HOME}
 
-export NAMENODE=true
-export USER_CONFIG=false
-
-export HADOOP_PREFIX=${SERVICES_DIR}/hadoop
-export STORAGE_URL=$HADOOP_NAMENODE_URL
-export ZK_URL=$ZOOKEEP_URL
-export ZKPREFIX=""
+source ${RESOURCES_DIR}/envSettings # This needs revision !!!
 
 LOG_DIR=${PROG_HOME}/log
 CONSOLE_LOG=${LOG_DIR}/${PROG_DNAME}.log
@@ -242,6 +238,10 @@ case "${ARG1}" in
 	;;
 	help)
 		npidUsage
+	;;
+	# This is for testing purpose
+	sysCheck)
+		check_parameters
 	;;
 	*)
 		npidUsage
