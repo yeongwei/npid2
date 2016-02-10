@@ -219,7 +219,7 @@ if [ "${1}" == "-ignoresyscheck" ]; then
 fi
 ARG1=$1
 shift
-ARG2=$2
+ARG2=$1
 
 case "${ARG1}" in
 	start)

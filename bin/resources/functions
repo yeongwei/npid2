@@ -17,13 +17,13 @@
 ## npid start npi-ui
 ##	
 npidUsage() {
-	echo "Usage: npid {start|stop|restart|kill|status|version|help} [all|<component_name>|<service_name>]"
+	echo "Usage: npid {start|stop|restart|kill|status|version|help} {all|<component_name>|<service_name>}"
 	echo "component_name: npi, npi-storage, npi-analaytics, npi-collector, npi-ui"
 	echo "service_name: zookeeper, kafka, hadoop"
 	echo ""
 	echo "Example: "
 	echo "	1) npid start all"
-	echo "	2) npid start npi-storage"
+	echo "	2) npid start npi"
 	echo "	3) npid start zookeeper"
 	echo "	4) npid stop all"
 }

@@ -38,6 +38,9 @@ getPortResolution() {
 ##	1. Variable ${COMPONENT} should come from stdin
 ##
 startNpi() {
+	status=`isPidValid ${1}`
+	emergencyExit ${status} "GYMPB0000E: ${1} is already running."	
+
 	log INFO "GYMPB0000I: About to start ${1}"
 	checkDependent ${NPI_APP_NAME}	
 
@@ -101,9 +104,29 @@ startNpi() {
 	${NPI_HOME}/bin/npi > /dev/null 2>> ${NPI_LOG} &
 	writePID ${1} ${!}
 
-	log INFO "GYMPB0000I: ${1} has started" 
+	tryCount=${TRY_COUNT}
+	isNpiUp=0
+
+	while [ ${tryCount} -ne 0 ]; do
+		psStatus=`getPsByName 'Dprog.name=npi'`
+		if [ ! -z "${psStatus}" ]; then
+			isNpiUp=1
+			break
+		fi
+		sleep ${SLEEP_TIME}
+		tryCount=$(( ${tryCount} - 1 ))
+	done
+
+	if [ ${isNpiUp} -eq 1 ]; then
+		log INFO "GYMPB0000I: ${1} has started." 
+	else 
+		log ERROR "GYMPB0000E: ${1} is not starting."
+	fi
 }
 
+##
+## Deprecated implementation
+##
 startNpi2() {
 	log INFO "GYMPB0000I: About to start ${NPI_READABLE}"
 
@@ -113,6 +136,9 @@ startNpi2() {
 	log INFO "GYMPB0000I: ${NPI_READABLE} has started."
 }
 
+##
+##
+##
 stopNpi() {
 	log INFO "GYMPB0000I: About to stop ${1}"
 
@@ -121,7 +147,25 @@ stopNpi() {
 		emergencyExit "1" "GYMPB0000E: ${NPI_READABLE} has no associated PID file."
 	else
 		kill -SIGTERM ${pid}
-		removePID ${1}
-		log INFO "GYMPB0000I: ${1} has stopped."
+		
+		tryCount=${TRY_COUNT}
+		isNpiDown=0
+
+		while [ ${tryCount} -ne 0 ]; do
+			psStatus=`getPsByName 'Dprog.name=npi'`
+			if [ -z "${psStatus}" ]; then
+				isNpiDown=1
+				break
+			fi
+			sleep ${SLEEP_TIME}
+			tryCount=$(( ${tryCount} - 1 ))
+		done
+		
+		if [ ${isNpiDown} -eq 1 ]; then
+			removePID ${1}
+			log INFO "GYMPB0000I: ${1} has stopped."
+		else
+			log ERROR "GYMPB0000E: ${1} is not stopping."
+		fi
 	fi
 }

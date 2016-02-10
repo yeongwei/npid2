@@ -6,6 +6,10 @@
 ## ==========================================================
 
 ##
+##
+defaultLog="GYMPB0000I Application name is missing / incorrect."
+
+##
 ## For CMD "start"
 ##
 startRoutine() {
@@ -23,7 +27,7 @@ startRoutine() {
 			startNpi ${1}
 		;;
 		*)
-			log INFO "GYMPB0000I Application name is missing."
+			log INFO ${defaultLog}
 			npidUsage
 		;;
 	esac
@@ -47,7 +51,7 @@ stopRountine() {
 			stopNpi ${1}
 		;;
 		*)
-			log INFO "GYMPB0000I: Application name is missing."
+			log INFO ${defaultLog}
 			npidUsage
 		;;
 	esac
@@ -79,7 +83,7 @@ restartRoutine() {
 			startNpi ${1}
 		;;
 		*)
-			log INFO "GYMPB0000I: Application name is missing."
+			log INFO ${defaultLog}
 			npidUsage
 		;;
 	esac
