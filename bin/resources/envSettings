@@ -1,0 +1,9 @@
+#!/bin/bash
+
+export NAMENODE=true
+export USER_CONFIG=false
+
+export HADOOP_PREFIX=${SERVICES_DIR}/hadoop
+export STORAGE_URL=$HADOOP_NAMENODE_URL
+export ZK_URL=$ZOOKEEP_URL
+export ZKPREFIX=""
