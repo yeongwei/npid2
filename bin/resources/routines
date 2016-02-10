@@ -59,6 +59,15 @@ stopRountine() {
 		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
 			stopNpi ${1}
 		;;
+		"all")
+			stopNpi "npi"
+			sleep ${SLEEP_TIME}
+			stopHadoop
+			sleep ${SLEEP_TIME}
+			stopKafka
+			sleep ${SLEEP_TIME}
+			stopZookeeper
+		;;
 		*)
 			log INFO ${defaultLog}
 			npidUsage
