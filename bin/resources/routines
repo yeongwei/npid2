@@ -26,6 +26,15 @@ startRoutine() {
 		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
 			startNpi ${1}
 		;;
+		"all")
+			startZookeeper
+			sleep ${SLEEP_TIME}
+			startKafka
+			sleep ${SLEEP_TIME}
+			startHadoop
+			sleep ${SLEEP_TIME}
+			startNpi "npi"
+		;;
 		*)
 			log INFO ${defaultLog}
 			npidUsage
