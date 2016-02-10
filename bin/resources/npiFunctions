@@ -44,6 +44,8 @@ startNpi() {
 	log INFO "GYMPB0000I: About to start ${1}"
 	checkDependent ${NPI_APP_NAME}	
 
+	check_parameters
+
 	if [ -z "${1}" ]; then	
 		emergencyExit "1" "GYMPB0000E: Please provide a ${NPI_APP_NAME} component name."
 	fi 	
