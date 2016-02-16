@@ -240,10 +240,6 @@ case "${ARG1}" in
 	help)
 		npidUsage
 	;;
-	# This is for testing purpose
-	sysCheck)
-		check_parameters
-	;;
 	*)
 		npidUsage
 	;;
