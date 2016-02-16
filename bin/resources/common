@@ -136,7 +136,12 @@ stopApplication() {
 checkStatus() {
 	if [ -f ${VAR_DIR}/${1}.pid ]; then
 		pid=`getPID ${1}`
-		log INFO "GYMPB0116I: Application ${1} is running on pid ${pid}."
+		pidStatus=`isPidValid ${1}`
+		if [ ${pidStatus} == "1" ]; then
+			log INFO "GYMPB0116I: Application ${1} is running on pid ${pid}."
+		else
+			log INFO "GYMPB0117I: Application ${1} is not started."
+		fi		
 	else
 		log INFO "GYMPB0117I: Application ${1} is not started."
 	fi		
