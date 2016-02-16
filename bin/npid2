@@ -185,13 +185,13 @@ check_parameters() {
 # ======================================
 # Source relevant shell scripts 
 # ======================================
-source ${RESOURCES_DIR}/functions
+source ${RESOURCES_DIR}/common
 source ${RESOURCES_DIR}/dependencies
 source ${RESOURCES_DIR}/zookeeperFunctions
 source ${RESOURCES_DIR}/kafkaFunctions
 source ${RESOURCES_DIR}/hadoopFunctions
 source ${RESOURCES_DIR}/npiFunctions
-source ${RESOURCES_DIR}/routines
+source ${RESOURCES_DIR}/command
 
 # Assuming USERS has modified this file
 # Pending:
