@@ -5,6 +5,13 @@
 ## ==========================================================
 
 ##
+## Specifically checks for Kafka
+##
+isKafkaStarted() {
+	echo `isInfraStarted "dump" "/kafka/"`
+}
+
+##
 ##
 ##
 startKafka() {
