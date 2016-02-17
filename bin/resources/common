@@ -162,10 +162,10 @@ checkAllStatus() {
 			appPid=`head -1 ${VAR_DIR}/${pidFile}` # should use cat or head ???
 
 			pidStatus=`isPidValid ${appName}`
-			if [ ${pidStatus} -eq 0 ]; then
-				log INFO "GYMPB0116I: Application ${appName} is not running." # when is the best time to remove obsolete PID files ???
-			else
+			if [ ${pidStatus} -eq 1 ]; then
 				log INFO "GYMPB0116I: Application ${appName} is running on pid ${appPid}."
+			else
+				log INFO "GYMPB0116I: Application ${appName} is not running."
 			fi
 		done
 	fi 
