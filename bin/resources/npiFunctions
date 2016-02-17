@@ -41,7 +41,7 @@ startNpi() {
 	status=`isPidValid ${1}`
 	emergencyExit ${status} "GYMPB0000E: ${1} is already running."	
 
-	log INFO "GYMPB0000I: About to start ${1}"
+	log INFO "GYMPB0000I: Starting ${1}"
 	checkDependent ${NPI_APP_NAME}	
 
 	check_parameters
@@ -62,10 +62,6 @@ startNpi() {
 	esac
 	COMPONENT=${1}
 
-	# WEB_PORT=${WEB_PORT:-8081}
-	# WEB_SEC_PORT=${WEB_SEC_PORT:-9443}
-	# JMX_PORT=${JMX_PORT:-9010}
-
 	WEB_PORT=`getPortResolution 8081 ${COMPONENT}`
 	log DEBUG "GYMPB0000D: Http Port - ${WEB_PORT}"
 
@@ -75,15 +71,15 @@ startNpi() {
 	JMX_PORT=`getPortResolution 9010 ${COMPONENT}`
 	log DEBUG "GYMPB0000D: Jmx Port - ${JMX_PORT}"
 
-	NETTY_PORT=`getPortResolution 2552 ${COMPONENT}`
-	log DEBUG "GYMPB0000D: Netty Port - ${NETTY_PORT}"
+	AKKA_CLUSTER_PORT=`getPortResolution 2552 ${COMPONENT}`
+	log DEBUG "GYMPB0000D: Akka Cluster Port - ${AKKA_CLUSTER_PORT}"
 
 	COMPONENT=`echo ${COMPONENT} | sed s/npi\-//`	
 	if [ ${COMPONENT} == "${NPI_APP_NAME}" ]; then
 		COMPONENT=""
 	fi
 
-	JVM_OPT="${JVM_OPT} -Dhttp.port=${WEB_PORT} -Dhttps.port=${WEB_SEC_PORT} -Djmx.port=${JMX_PORT} -Dakka.remote.netty.tcp.port=${NETTY_PORT} -Dakka.remote.netty.tcp.bind-port=${NETTY_PORT}"
+	JVM_OPT="${JVM_OPT} -Dhttp.port=${WEB_PORT} -Dhttps.port=${WEB_SEC_PORT} -Djmx.port=${JMX_PORT} -Dakka.remote.netty.tcp.port=${AKKA_CLUSTER_PORT} -Dakka.remote.netty.tcp.bind-port=${AKKA_CLUSTER_PORT}"
 
 	if [ ! -z $STORAGE_URL ];then
 	  JVM_OPT="${JVM_OPT} -Dstorage.uri=${STORAGE_URL}"
@@ -120,22 +116,10 @@ startNpi() {
 	done
 
 	if [ ${isNpiUp} -eq 1 ]; then
-		log INFO "GYMPB0000I: ${1} has started." 
+		log INFO "GYMPB0000I: ${1} started." 
 	else 
 		log ERROR "GYMPB0000E: ${1} is not starting."
 	fi
-}
-
-##
-## Deprecated implementation
-##
-startNpi2() {
-	log INFO "GYMPB0000I: About to start ${NPI_READABLE}"
-
-	${BASH_SHELL} ${DOCKER_DIR}/${NPI_APP_NAME}/${BOOTSTRAP} >/dev/null 2>>${NPI_LOG} &
-	writePID ${NPI_APP_NAME} ${!}
-
-	log INFO "GYMPB0000I: ${NPI_READABLE} has started."
 }
 
 ##
@@ -165,7 +149,7 @@ stopNpi() {
 		
 		if [ ${isNpiDown} -eq 1 ]; then
 			removePID ${1}
-			log INFO "GYMPB0000I: ${1} has stopped."
+			log INFO "GYMPB0000I: ${1} stopped."
 		else
 			log ERROR "GYMPB0000E: ${1} is not stopping."
 		fi
