@@ -49,11 +49,11 @@ fi
 ZOOKEEPER_APP_NAME="zookeeper"
 KAFKA_APP_NAME="kafka"
 HADOOP_APP_NAME="hadoop"
-NPI_APP_NAME="npi" # Gonna deprecate soon
-NPI_STORAGE_APP_NAME="npi-storage" # storage
-NPI_ANALYTICS_APP_NAME="npi-analytics" # analytics
-NPI_COLLECTOR_APP_NAME="npi-collector" # collector
-NPI_UI_APP_NAME="npi-ui" # ui
+NPI_APP_NAME="npi"
+NPI_STORAGE_APP_NAME="storage"
+NPI_ANALYTICS_APP_NAME="analytics"
+NPI_COLLECTOR_APP_NAME="collector"
+NPI_UI_APP_NAME="ui"
 
 # Application names (human readable)
 ZOOKEEPER_READABLE="Zookeeper"
