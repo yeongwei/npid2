@@ -23,7 +23,7 @@ isInfraStarted() {
 }
 
 ##
-## Check if Zookeeper / Kafka has started
+## Check if Zookeeper / Kafka has started repeatitively
 ## USAGE: checkInfraStarted <CMD> <PATTERN> <APPLICATION>
 ##
 checkInfraStarted() {
