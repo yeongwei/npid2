@@ -39,12 +39,6 @@ if [ -z "$PROG_HOME" ] ; then
   cd "$saveddir"
 fi
 
-## =========================================================
-## New global variables
-## Pending:
-##	1. Should these variables be consolidated into one file ???
-## =========================================================
-
 # Application names
 ZOOKEEPER_APP_NAME="zookeeper"
 KAFKA_APP_NAME="kafka"
@@ -55,7 +49,7 @@ NPI_ANALYTICS_APP_NAME="analytics"
 NPI_COLLECTOR_APP_NAME="collector"
 NPI_UI_APP_NAME="ui"
 
-# Application names (human readable)
+# Readable names (human readable)
 ZOOKEEPER_READABLE="Zookeeper"
 KAFKA_READABLE="Kafka"
 HADOOP_READABLE="Hadoop"
@@ -65,42 +59,36 @@ NPI_ANALYTICS_READABLE="Analytics"
 NPI_COLLECTOR_READABLE="Collector"
 NPI_UI_READABLE="UI"
 
-# Reflects folder names inside docker directory
+# Reflects folder names
 ZOOKEEPER="zk"
 KAFKA="kafka"
 HADOOP="spark_hadoop"
 NPI="npi"
 
-# Global parameters
 TRY_COUNT=10
 SLEEP_TIME=5
-
-# New environmental variables
 SH_SHELL=`which sh`
 BASH_SHELL=`which bash`
+
 SERVICES_DIR=${PROG_HOME}/services
 RESOURCES_DIR=${BIN_DIR}/resources
 
-# Environment exports
-# Pending:
-#	1. Need to segregate out exports for each individual application
-#	2. Move relevant variables into npi_env.sh; currently resides in bin/resource/envSettings
 export NPI_HOME=${PROG_HOME}
-
-source ${RESOURCES_DIR}/envSettings # This needs revision !!!
-
-LOG_DIR=${PROG_HOME}/log
-CONSOLE_LOG=${LOG_DIR}/${PROG_DNAME}.log
-VAR_DIR=${PROG_HOME}/var
-
-# Component logs
-ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER_APP_NAME}.log
-KAFKA_LOG=${LOG_DIR}/${KAFKA_APP_NAME}.log
-HADOOP_LOG=${LOG_DIR}/${HADOOP_APP_NAME}.log
-NPI_LOG=${LOG_DIR}/${NPI_APP_NAME}.log
 
 DOCKER_DIR=${PROG_HOME}/docker		
 ENV_FILE="npi_env.sh"
+source ${DOCKER_DIR}/${ENV_FILE}
+
+source ${RESOURCES_DIR}/envSettings # This needs to be transferred into npi_env.sh
+
+LOG_DIR=${PROG_HOME}/log
+VAR_DIR=${PROG_HOME}/var
+
+CONSOLE_LOG=${LOG_DIR}/${PROG_DNAME}.log
+HADOOP_LOG=${LOG_DIR}/${HADOOP_APP_NAME}.log
+KAFKA_LOG=${LOG_DIR}/${KAFKA_APP_NAME}.log
+NPI_LOG=${LOG_DIR}/${NPI_APP_NAME}.log
+ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER_APP_NAME}.log
 
 if [ ! -d "${LOG_DIR}" ]; then
   mkdir -p ${LOG_DIR}
@@ -118,9 +106,6 @@ if [ ! -d "${VAR_DIR}" ]; then
   fi
 fi
 
-## =========================================================
-## Existing functions
-## =========================================================
 log() {
   severity=$1
   shift
@@ -182,9 +167,6 @@ check_parameters() {
   fi
 }
 
-# ======================================
-# Source relevant shell scripts 
-# ======================================
 source ${RESOURCES_DIR}/common
 source ${RESOURCES_DIR}/dependencies
 source ${RESOURCES_DIR}/zookeeperFunctions
@@ -193,13 +175,8 @@ source ${RESOURCES_DIR}/hadoopFunctions
 source ${RESOURCES_DIR}/npiFunctions
 source ${RESOURCES_DIR}/command
 
-# Assuming USERS has modified this file
-# Pending:
-# 	1. The npi_env.sh needs to be updated accordingly
-source ${DOCKER_DIR}/${ENV_FILE}
-
 ## =========================================================
-## Main controller
+## Main ====================================================
 ## =========================================================
 
 IGNORESYSCHECK="N"
