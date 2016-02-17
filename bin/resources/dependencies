@@ -5,7 +5,8 @@
 ##
 isDown() {
 	pid=`getPID ${1}`
-	if [ ! -z "$pid" ]; then 
+	pidStatus=`isPidValid ${pid}`
+	if [ ${pidStatus} -eq 1 ]; then 
 		emergencyExit "1" "GYMPB0000I: Failed dependee check. ${1} is still running"
 	fi
 }
@@ -15,7 +16,8 @@ isDown() {
 ##
 isUp() {
 	pid=`getPID ${1}`
-	if [ -z "$pid" ]; then 
+	pidStatus=`isPidValid ${pid}`
+	if [ ${pidStatus} -ne 1 ]; then 
 		emergencyExit "1" "GYMPB0000I: Failed dependent check. ${1} is not running."
 	fi
 }
