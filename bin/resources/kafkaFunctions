@@ -4,22 +4,24 @@
 ## 1. Functions related to Kafka
 ## ==========================================================
 
-checkKafkaDependency() {
-	log INFO "GYMPB0000I: Do we need this ???"
-}
-
+##
+##
+##
 startKafka() {
 	status=`isPidValid "${KAFKA_APP_NAME}"`
 	emergencyExit ${status} "GYMPB0000E: ${KAFKA_READABLE} is already running."
 
-	log INFO "GYMPB0000I: About to start ${KAFKA_READABLE}"
+	log INFO "GYMPB0000I: Starting ${KAFKA_READABLE}."
 	checkDependent ${KAFKA_APP_NAME}
 
 	cd ${SERVICES_DIR}/${KAFKA_APP_NAME} && ./bin/kafka-server-start.sh ${SERVICES_DIR}/conf/${KAFKA_APP_NAME}/${KAFKA_APP_NAME}-server.properties >>${KAFKA_LOG} 2>>${KAFKA_LOG} &
 	writePID ${KAFKA_APP_NAME} ${!}
-	checkZookeeperStarted "dump" "/kafka/" ${KAFKA_READABLE}
+	checkInfraStarted "dump" "/kafka/" ${KAFKA_READABLE}
 }
 
+##
+##
+##
 stopKafka() {
 	log INFO "GYMPB0000I: About to stop ${KAFKA_READABLE}"
 	checkDependentee ${KAFKA_APP_NAME}
@@ -47,7 +49,7 @@ stopKafka() {
 		if [ ${isKafkaDown} -eq 0 ]; then
 			emergencyExit "1" "GYMPB0000E: ${KAFKA_READABLE} is not stopping."
 		else
-			log INFO "GYMPB0000I: ${KAFKA_READABLE} has stopped."
+			log INFO "GYMPB0000I: ${KAFKA_READABLE} stopped."
 			removePID ${KAFKA_APP_NAME}
 		fi
 	fi
