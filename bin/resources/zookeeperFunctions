@@ -23,6 +23,13 @@ isInfraStarted() {
 }
 
 ##
+## Specifically checks for Zookeeper
+##
+isZookeeperStarted() {
+	echo `isInfraStarted "stat" "Mode:"`
+}
+
+##
 ## Check if Zookeeper / Kafka has started repeatitively
 ## USAGE: checkInfraStarted <CMD> <PATTERN> <APPLICATION>
 ##
