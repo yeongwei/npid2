@@ -8,4 +8,5 @@ export STORAGE_URL=$HADOOP_NAMENODE_URL
 export ZK_URL=$ZOOKEEP_URL
 export ZKPREFIX=""
 
-export JDBC_SERVICE="`hostname`:8091"
+export JDBC_SERVICE=${JDBC_SERVICE:-"`hostname`:8091"}
+export HADOOP_RM_PORT=${HADOOP_RM_PORT:-8088}
