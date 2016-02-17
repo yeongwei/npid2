@@ -23,10 +23,16 @@ startRoutine() {
 		"${HADOOP_APP_NAME}")
 			startHadoop
 		;;
-		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_UI_APP_NAME}")
+		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
 			startNpi ${1}
 		;;
-		"all")
+		"${NPI_APP_NAME}")
+			startNpi ${NPI_STORAGE_APP_NAME}; sleep ${SLEEP_TIME}
+			startNpi ${NPI_ANALYTICS_APP_NAME}; sleep ${SLEEP_TIME}
+			startNpi ${NPI_COLLECTOR_APP_NAME}; sleep ${SLEEP_TIME}
+			startNpi ${NPI_UI_APP_NAME}
+		;;
+		"all") # Start all services and components
 			startZookeeper; sleep ${SLEEP_TIME}
 			startKafka; sleep ${SLEEP_TIME}
 			startHadoop; sleep ${SLEEP_TIME}
@@ -53,7 +59,7 @@ stopRountine() {
 		"${HADOOP_APP_NAME}")
 			stopHadoop
 		;;
-		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_UI_APP_NAME}")
+		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
 			stopNpi ${1}
 		;;
 		"all")
@@ -83,7 +89,7 @@ restartRoutine() {
 		"${HADOOP_APP_NAME}")
 			stopHadoop; sleep ${SLEEP_TIME}; startHadoop
 		;;
-		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_UI_APP_NAME}")
+		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
 			stopNpi ${1}; sleep ${SLEEP_TIME}; startNpi ${1}
 		;;
 		*)
@@ -133,7 +139,7 @@ killRoutine() {
 		"${ZOOKEEPER_APP_NAME}") ;;
 		"${KAFKA_APP_NAME}") ;;
 		"${HADOOP_APP_NAME}") ;;
-		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}") ;;
+		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}") ;;
 		"all")
 			# This rountine is not clean, need revision ???
 			killRoutineHelper "npi"; sleep ${SLEEP_TIME}
