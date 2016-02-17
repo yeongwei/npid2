@@ -23,16 +23,13 @@ startRoutine() {
 		"${HADOOP_APP_NAME}")
 			startHadoop
 		;;
-		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
+		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_UI_APP_NAME}")
 			startNpi ${1}
 		;;
 		"all")
-			startZookeeper
-			sleep ${SLEEP_TIME}
-			startKafka
-			sleep ${SLEEP_TIME}
-			startHadoop
-			sleep ${SLEEP_TIME}
+			startZookeeper; sleep ${SLEEP_TIME}
+			startKafka; sleep ${SLEEP_TIME}
+			startHadoop; sleep ${SLEEP_TIME}
 			startNpi "npi"
 		;;
 		*)
@@ -56,16 +53,13 @@ stopRountine() {
 		"${HADOOP_APP_NAME}")
 			stopHadoop
 		;;
-		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
+		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_UI_APP_NAME}")
 			stopNpi ${1}
 		;;
 		"all")
-			stopNpi "npi"
-			sleep ${SLEEP_TIME}
-			stopHadoop
-			sleep ${SLEEP_TIME}
-			stopKafka
-			sleep ${SLEEP_TIME}
+			stopNpi "npi"; sleep ${SLEEP_TIME}
+			stopHadoop; sleep ${SLEEP_TIME}
+			stopKafka; sleep ${SLEEP_TIME}
 			stopZookeeper
 		;;
 		*)
@@ -81,24 +75,16 @@ stopRountine() {
 restartRoutine() {
 	case "${1}" in 
 		"${ZOOKEEPER_APP_NAME}")
-			stopZookeeper
-			sleep ${SLEEP_TIME}
-			startZookeeper
+			stopZookeeper; sleep ${SLEEP_TIME}; startZookeeper
 		;;
 		"${KAFKA_APP_NAME}")
-			stopKafka
-			sleep ${SLEEP_TIME}
-			startKafka
+			stopKafka; sleep ${SLEEP_TIME}; startKafka
 		;;
 		"${HADOOP_APP_NAME}")
-			stopHadoop
-			sleep ${SLEEP_TIME}
-			startHadoop
+			stopHadoop; sleep ${SLEEP_TIME}; startHadoop
 		;;
-		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
-			stopNpi ${1}
-			sleep ${SLEEP_TIME}
-			startNpi ${1}
+		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_UI_APP_NAME}")
+			stopNpi ${1}; sleep ${SLEEP_TIME}; startNpi ${1}
 		;;
 		*)
 			log INFO ${defaultLog}
@@ -139,6 +125,9 @@ killRoutineHelper() {
 	fi
 }
 
+##
+## For CMD "kill"
+##
 killRoutine() {
 	case "${1}" in 
 		"${ZOOKEEPER_APP_NAME}") ;;
@@ -147,12 +136,9 @@ killRoutine() {
 		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}") ;;
 		"all")
 			# This rountine is not clean, need revision ???
-			killRoutineHelper "npi"
-			sleep ${SLEEP_TIME}
-			killRoutineHelper "hadoop"
-			sleep ${SLEEP_TIME}
-			killRoutineHelper "kafka"
-			sleep ${SLEEP_TIME}
+			killRoutineHelper "npi"; sleep ${SLEEP_TIME}
+			killRoutineHelper "hadoop"; sleep ${SLEEP_TIME}
+			killRoutineHelper "kafka"; sleep ${SLEEP_TIME}
 			killRoutineHelper "zookeeper"
 			exit 0 # Ends here
 		;;
@@ -165,8 +151,6 @@ killRoutine() {
 	
 	killRoutineHelper ${1}
 }
-
-
 
 ##
 ## For CMD "status"
