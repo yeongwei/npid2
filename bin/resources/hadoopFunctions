@@ -6,8 +6,7 @@
 ## ==========================================================
 
 ##
-## Pending:
-##	1. Need to save PID somewhere, $WAIT_PID; E.g. saveNameNodePid() { ... }
+##
 ##
 nn_service() {
 	cmd=$1
@@ -33,22 +32,23 @@ nn_service() {
 		# if [ ${WAIT_PID} -eq 0 ]; then
 		if [ -z "`getPID ${HADOOP_APP_NAME}`" ]; then
 	  		# WAIT_PID=$(cat /tmp/hadoop-*-secondarynamenode.pid |head -1)
-			writePID ${HADOOP_APP_NAME} "`cat /tmp/hadoop-*-secondarynamenode.pid | head -1`"
+			# writePID ${HADOOP_APP_NAME} "`cat /tmp/hadoop-*-secondarynamenode.pid | head -1`"
+			WAIT_PID=0
 	  	fi
 	fi
     
     	# if [ ${WAIT_PID} -eq 0 ];then
 	if [ -z "`getPID ${HADOOP_APP_NAME}`" ]; then 
 		# WAIT_PID=$(cat /tmp/hadoop-*-namenode.pid |head -1)
-		writePID ${HADOOP_APP_NAME}  "`cat /tmp/hadoop-*-namenode.pid | head -1`"
+		# writePID ${HADOOP_APP_NAME}  "`cat /tmp/hadoop-*-namenode.pid | head -1`"
+		WAIT_PID=0
     	fi
     
     	"${HADOOP_PREFIX}"/sbin/yarn-daemon.sh --config ${HADOOP_CONF_DIR} ${cmd} resourcemanager	
 }
 
 ##
-## Pending:
-##	1. Need to save PID somewhere
+##
 ##
 dt_service() {
 	cmd=${1}
@@ -65,13 +65,13 @@ dt_service() {
 	# if [ ${WAIT_PID} -eq 0 ];then
 	if [ -z "`getPID ${HADOOP_APP_NAME}`" ]; then
 		# WAIT_PID=$(cat /tmp/hadoop-*-datanode.pid |head -1)
-		writePID ${HADOOP_APP_NAME} "`cat /tmp/hadoop-*-datanode.pid | head -1`"
+		# writePID ${HADOOP_APP_NAME} "`cat /tmp/hadoop-*-datanode.pid | head -1`"
+		WAIT_PID=0
 	fi
 }
 
 ##
-## Comment:
-## 	1. Not changing the paths to variables yet to remain apparent
+##
 ##
 copy_spark_jar_and_conf() {
 	log DEBUG "GYMPB0000D: Waiting for recovering from safemode"
@@ -126,8 +126,7 @@ isHadoopStarted() {
 }
 
 ##
-## 1. To check Hadoop is REALLY up
-## 2. There are initial errors not able surpress by this script ***
+## Check if Hadoop has really started
 ##
 checkHadoop() {
 	isHadoopUp=0
@@ -204,8 +203,7 @@ soureceHadoopEnv() {
 }
 
 ##
-## Pending:
-##	1. Need to include ${NAMENODE} into npi_env.
+##
 ##
 startHadoop() {
 	log INFO "GYMPB0000I: Starting ${HADOOP_READABLE}."

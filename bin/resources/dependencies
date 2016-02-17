@@ -1,25 +1,61 @@
 #!/bin/bash
 
 ##
+## If Zookeeper not started then perform emergencyExit
 ##
-##
-isDown() {
-	pid=`getPID ${1}`
-	pidStatus=`isPidValid ${1}`
-	if [ ${pidStatus} -eq 1 ]; then 
-		emergencyExit "1" "GYMPB0000I: Failed dependee check. `getReadableName ${1}` is still running"
+needZookeeper() {
+	status=`isZookeeperStarted`
+	if [ ${status} -ne 1 ]; then
+		emergencyExit "1" "GYMPB0000E: ${ZOOKEEPER_READABLE} not started."
 	fi
 }
 
 ##
-##
-##
-isUp() {
-	pid=`getPID ${1}`
-	pidStatus=`isPidValid ${1}`
-	if [ ${pidStatus} -ne 1 ]; then 
-		emergencyExit "1" "GYMPB0000I: Failed dependent check. `getReadableName ${1}` is not running."
+## If Kafka not started then perform emergencyExit
+## 
+needKafka() {
+	status=`isKafkaStarted`
+	if [ ${status} -ne 1 ]; then
+		emergencyExit "1" "GYMPB0000E: ${KAFKA_READABLE} not started."
 	fi
+}
+
+##
+isKafkaRunning() {
+	status=`isKafkaStarted`
+	if [ ${status} -eq 1 ]; then
+		emergencyExit "1" "GYMPB0000E: ${KAFKA_READABLE} is started."
+	fi
+}
+
+##
+## If Hadoop not started then perform emergencyExit
+##
+needHadoop() {
+	status=`isHadoopStarted`
+	if [ ${status} -ne 1 ]; then
+		emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} not started."
+	fi
+}
+
+##
+## Only checks for local NPI instance
+## Pending:
+## 	1. Need to check remote NPI instance ???
+##
+isAnyNpiRunning() {
+	grepPidFilesStr="(${NPI_UI_APP_NAME}|${NPI_COLLECTOR_APP_NAME}|${NPI_ANALYTICS_APP_NAME}|${NPI_STORAGE_APP_NAME}|${NPI_APP_NAME})"
+	npiPidFiles=`ls ${VAR_DIR} | egrep ${grepPidFilesStr}`
+	npiPidFiles=(${npiPidFiles[*]})
+
+	for pidFile in "${npiPidFiles[@]}"; do
+		componentName=`echo ${pidFile} | cut -d. -f1`
+		pidStatus=`isPidValid ${componentName}`
+		if [ ${pidStatus} -eq 1 ]; then
+			emergencyExit "1" "GYMPB0000E: `getReadableName ${componentName}` is started."
+			break
+		fi
+	done
 }
 
 ##
@@ -27,19 +63,16 @@ isUp() {
 ##
 checkDependent() {
 	case "${1}" in
-		"${ZOOKEEPER_APP_NAME}")
-		;;
+		"${ZOOKEEPER_APP_NAME}") ;;
 		"${KAFKA_APP_NAME}")
-			isUp ${ZOOKEEPER_APP_NAME}
+			needZookeeper
 		;;
-		"${HADOOP_APP_NAME}")
-			isUp ${KAFKA_APP_NAME}
-		;;
-		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
-			isUp ${HADOOP_APP_NAME}
+		"${HADOOP_APP_NAME}") ;;
+		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}" | "${NPI_APP_NAME}")
+			needZookeeper; needKafka; needHadoop;
 		;;
 		*)
-			emergencyExit "1" "GYMPB0000I: Unable to resolve dependent."
+			emergencyExit "1" "GYMPB0000E: Unable to resolve dependent."
 		;;
 	esac
 	
@@ -51,18 +84,17 @@ checkDependent() {
 checkDependentee() {
 	case "${1}" in
 		"${ZOOKEEPER_APP_NAME}")
-			isDown ${KAFKA_APP_NAME}
+			isKafkaRunning; isAnyNpiRunning
 		;;
 		"${KAFKA_APP_NAME}")
-			isDown ${HADOOP_APP_NAME}
+			isAnyNpiRunning
 		;;
-		"${HADOOP_APP_NAME}")
-			isDown ${NPI_APP_NAME} # need to extend to support other npi-*
+		"${HADOOP_APP_NAME}") 	
+			isAnyNpiRunning
 		;;
-		"${NPI_APP_NAME}"-* | "${NPI_APP_NAME}")
-		;;
+		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}" | "${NPI_APP_NAME}") ;;
 		*)
-			emergencyExit "1" "GYMPB0000I: Unable to resolve dependentee."
+			emergencyExit "1" "GYMPB0000E: Unable to resolve dependentee."
 		;;
 	esac
 	

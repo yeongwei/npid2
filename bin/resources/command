@@ -32,11 +32,15 @@ startRoutine() {
 			startNpi ${NPI_COLLECTOR_APP_NAME}; sleep ${SLEEP_TIME}
 			startNpi ${NPI_UI_APP_NAME}
 		;;
-		"all") # Start all services and components
+		"all")
 			startZookeeper; sleep ${SLEEP_TIME}
 			startKafka; sleep ${SLEEP_TIME}
 			startHadoop; sleep ${SLEEP_TIME}
-			startNpi "npi"
+
+			startNpi ${NPI_STORAGE_APP_NAME}; sleep ${SLEEP_TIME}
+			startNpi ${NPI_ANALYTICS_APP_NAME}; sleep ${SLEEP_TIME}
+			startNpi ${NPI_COLLECTOR_APP_NAME}; sleep ${SLEEP_TIME}
+			startNpi ${NPI_UI_APP_NAME}
 		;;
 		*)
 			log INFO ${defaultLog}
@@ -90,7 +94,7 @@ restartRoutine() {
 			stopHadoop; sleep ${SLEEP_TIME}; startHadoop
 		;;
 		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
-			stopNpi ${1}; sleep ${SLEEP_TIME}; startNpi ${1}
+			stopNpi "npi"; sleep ${SLEEP_TIME}; startNpi ${1}
 		;;
 		*)
 			log INFO ${defaultLog}

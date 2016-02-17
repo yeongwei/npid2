@@ -5,10 +5,8 @@
 ## ==========================================================
 
 ##
-## Return Zookeeper START status as 1 or 0
-## Expect return of "Mode: Standalone"
-## ${1} stats / dump
-## ${2} "Mode: " or "kafka/controller"
+## Check via Zookeeper service
+## If 1 is up else 0
 ##
 isInfraStarted() {
 	host=`echo ${ZOOKEEP_URL} | cut -d: -f1`
