@@ -34,12 +34,11 @@ getPortResolution() {
 }
 
 ##
-## Pending:
-##	1. Variable ${COMPONENT} should come from stdin
+## Expected arguments: "storage, analytics, collector, ui"
 ##
 startNpi() {
 	status=`isPidValid ${1}`
-	emergencyExit ${status} "GYMPB0000E: ${1} is already running."	
+	emergencyExit ${status} "GYMPB0000E: ${NPI_READABLE} component is already running."	
 
 	log INFO "GYMPB0000I: Starting ${1}"
 	checkDependent ${NPI_APP_NAME}	
@@ -74,11 +73,13 @@ startNpi() {
 	AKKA_CLUSTER_PORT=`getPortResolution 2552 ${COMPONENT}`
 	log DEBUG "GYMPB0000D: Akka Cluster Port - ${AKKA_CLUSTER_PORT}"
 
+	# This needs to be removed eventually
 	COMPONENT=`echo ${COMPONENT} | sed s/npi\-//`	
 	if [ ${COMPONENT} == "${NPI_APP_NAME}" ]; then
 		COMPONENT=""
 	fi
 
+	COMPONENT_OPT=""
 	JVM_OPT="${JVM_OPT} -Dhttp.port=${WEB_PORT} -Dhttps.port=${WEB_SEC_PORT} -Djmx.port=${JMX_PORT} -Dakka.remote.netty.tcp.port=${AKKA_CLUSTER_PORT} -Dakka.remote.netty.tcp.bind-port=${AKKA_CLUSTER_PORT}"
 
 	if [ ! -z $STORAGE_URL ];then
@@ -91,6 +92,7 @@ startNpi() {
 
 	if [ ! -z ${COMPONENT} ];then
 	   JVM_OPT="${JVM_OPT} -Dnpi.component=${COMPONENT}"
+	   COMPONENT_OPT="-component ${COMPONENT}"
 	fi
 
 	if [ ! -z ${JDBC_SERVICE} ];then
@@ -99,7 +101,7 @@ startNpi() {
 
 	export JVM_OPT
 
-	${NPI_HOME}/bin/npi > /dev/null 2>> ${NPI_LOG} &
+	${NPI_HOME}/bin/npi ${COMPONENT_OPT} > /dev/null 2>> ${NPI_LOG} &
 	writePID ${1} ${!}
 
 	tryCount=${TRY_COUNT}
