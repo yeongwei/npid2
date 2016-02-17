@@ -183,10 +183,13 @@ startHadoop() {
 		fi
 	
 		nn_service start
-		copy_spark_jar_and_conf
-	fi
 
-	dt_service start
+		dt_service start
+
+		copy_spark_jar_and_conf
+	else
+		dt_service start
+	fi
 
 	checkHadoop
 
