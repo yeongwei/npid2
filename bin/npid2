@@ -72,17 +72,15 @@ BASH_SHELL=`which bash`
 
 SERVICES_DIR=${PROG_HOME}/services
 RESOURCES_DIR=${BIN_DIR}/resources
+LOG_DIR=${PROG_HOME}/log
+VAR_DIR=${PROG_HOME}/var
 
 export NPI_HOME=${PROG_HOME}
 
 DOCKER_DIR=${PROG_HOME}/docker		
 ENV_FILE="npi_env.sh"
 source ${DOCKER_DIR}/${ENV_FILE}
-
 source ${RESOURCES_DIR}/envSettings # This needs to be transferred into npi_env.sh
-
-LOG_DIR=${PROG_HOME}/log
-VAR_DIR=${PROG_HOME}/var
 
 CONSOLE_LOG=${LOG_DIR}/${PROG_DNAME}.log
 HADOOP_LOG=${LOG_DIR}/${HADOOP_APP_NAME}.log

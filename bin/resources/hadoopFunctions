@@ -208,7 +208,7 @@ soureceHadoopEnv() {
 ##	1. Need to include ${NAMENODE} into npi_env.
 ##
 startHadoop() {
-	log INFO "GYMPB0000I: About to start ${HADOOP_READABLE}"
+	log INFO "GYMPB0000I: Starting ${HADOOP_READABLE}."
 	checkDependent ${HADOOP_APP_NAME}
 
 	soureceHadoopEnv
@@ -231,17 +231,6 @@ startHadoop() {
 	fi
 
 	checkHadoop
-}
-
-## Invoke boostraps.sh style
-startHadoop2() {
-	log INFO "GYMPB0000I: About to start ${HADOOP_READABLE}"	
-
-	${BASH_SHELL} ${DOCKER_DIR}/${HADOOP}/${BOOTSTRAP} >>${HADOOP_LOG} 2>>${HADOOP_LOG} & # Need /bin/bash instead of /bin/sh ???
-	writePID ${HADOOP_APP_NAME} ${!}
-	checkHadoop
-
-	log INFO "GYMPB0000I: ${HADOOP_READABLE} has started."
 }
 
 ##

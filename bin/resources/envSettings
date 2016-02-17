@@ -10,3 +10,5 @@ export ZKPREFIX=""
 
 export JDBC_SERVICE=${JDBC_SERVICE:-"`hostname`:8091"}
 export HADOOP_RM_PORT=${HADOOP_RM_PORT:-8088}
+export HADOOP_PID_DIR=${VAR_DIR:-"/tmp"}
+export YARN_PID_DIR=${VAR_DIR:-"/tmp"}
