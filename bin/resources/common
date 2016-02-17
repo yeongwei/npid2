@@ -43,7 +43,7 @@ emergencyExit() {
 ## Return 1 if found else 0
 ## E.g. 
 ##	isPidValid zookeeper
-##	isPidValid npi-storage
+##	isPidValid storage
 ##
 isPidValid() {
 	pidFile=${VAR_DIR}/${1}.pid
