@@ -138,12 +138,12 @@ checkStatus() {
 		pid=`getPID ${1}`
 		pidStatus=`isPidValid ${1}`
 		if [ ${pidStatus} == "1" ]; then
-			log INFO "GYMPB0116I: Application ${1} is running on pid ${pid}."
+			log INFO "GYMPB0116I: Application `getReadableName ${1}` is running on pid ${pid}."
 		else
-			log INFO "GYMPB0117I: Application ${1} is not started."
+			log INFO "GYMPB0117I: Application `getReadableName ${1}` is not started."
 		fi		
 	else
-		log INFO "GYMPB0117I: Application ${1} is not started."
+		log INFO "GYMPB0117I: Application `getReadableName ${1}` is not started."
 	fi		
 }
 
@@ -163,10 +163,81 @@ checkAllStatus() {
 
 			pidStatus=`isPidValid ${appName}`
 			if [ ${pidStatus} -eq 1 ]; then
-				log INFO "GYMPB0116I: Application ${appName} is running on pid ${appPid}."
+				log INFO "GYMPB0116I: Application `getReadableName ${appName}` is running on pid ${appPid}."
 			else
-				log INFO "GYMPB0116I: Application ${appName} is not running."
+				log INFO "GYMPB0116I: Application `getReadableName ${appName}` is not running."
 			fi
 		done
 	fi 
+}
+
+##
+## Application names are usually all lowercase
+## Example: Hadoop -> hadoop
+##
+getApplicationName() {
+	case "${1}" in
+		"${ZOOKEEPER_READABLE}")
+			echo ${ZOOKEEPER_APP_NAME}		
+		;;
+		"${KAFKA_READABLE} ")
+			echo ${KAFKA_APP_NAME}	
+		;;
+		"${HADOOP_READABLE}")
+			echo ${HADOOP_APP_NAME}	
+		;;
+		"${NPI_READABLE}")
+			echo ${NPI_APP_NAME}
+		;;
+		"${NPI_STORAGE_READABLE}")
+			echo ${NPI_STORAGE_APP_NAME}	
+		;;
+		"${NPI_ANALYTICS_READABLE}")
+			echo ${NPI_ANALYTICS_APP_NAME}
+		;;
+		"${NPI_COLLECTOR_READABLE}")
+			echo ${NPI_COLLECTOR_APP_NAME}		
+		;;
+		"${NPI_UI_READABLE}")
+			echo ${NPI_UI_APP_NAME}
+		;;
+		*)
+			echo "NA"
+		;;
+	esac
+}
+
+##
+## Readable names are usually with first letter as capital
+##
+getReadableName() {
+	case "${1}" in
+		"${ZOOKEEPER_APP_NAME}")
+			echo ${ZOOKEEPER_READABLE}		
+		;;
+		"${KAFKA_APP_NAME}")
+			echo ${KAFKA_READABLE} 		
+		;;
+		"${HADOOP_APP_NAME}")
+			echo ${HADOOP_READABLE}		
+		;;
+		"${NPI_APP_NAME}")
+			echo ${NPI_READABLE}
+		;;
+		"${NPI_STORAGE_APP_NAME}")
+			echo ${NPI_STORAGE_READABLE}		
+		;;
+		"${NPI_ANALYTICS_APP_NAME}")
+			echo ${NPI_ANALYTICS_READABLE}
+		;;
+		"${NPI_COLLECTOR_APP_NAME}")
+			echo ${NPI_COLLECTOR_READABLE}		
+		;;
+		"${NPI_UI_APP_NAME}")
+			echo ${NPI_UI_READABLE}
+		;;
+		*)
+			echo "NA"
+		;;
+	esac
 }
