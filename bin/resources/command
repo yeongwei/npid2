@@ -175,46 +175,106 @@ killRoutineHelper2() {
 ##
 ## For CMD "kill"
 ## Uses the kill -9 <PID>
-## Only could kill local processes NOT remote
+## ** Only could kill local processes NOT remote
 ##
+
+# Kill Zookeeper or Kafka
+# Usage: killInfra zookeeper, killInfra kafka
+killInfra() {
+	pidFile=${VAR_DIR}/${1}.pid
+	if [ -f ${pidFile} ]; then
+		pid=`head -1 ${pidFile}`
+		pidStatus=`isPidValid ${1}`
+		if [ ${pidStatus} -eq 1 ]; then
+			killStatus=`killRoutineHelper ${pid}`
+			if [ ${killStatus} -eq 1 ]; then
+				rm ${pidFile}
+				log INFO "GYMPB0000I: `getReadableName ${1}` killed."
+			else				
+				log ERROR "GYMPB0000E: `getReadableName ${1}` not killed."
+			fi
+		else 
+			log INFO "GYMPB0000I: `getReadableName ${1}` not started."
+		fi
+	else 
+			log INFO "GYMPB0000I: `getReadableName ${1}` not started."
+	fi
+}
+
+killHadoop() {
+	hadoopPidFiles=(`getHadoopPidFiles`)
+	successKill=0
+	for pidFile in "${hadoopPidFiles[@]}"; do
+		pid=`head -1 ${pidFile}`
+		killStatus=`killRoutineHelper ${pid}`
+		if [ ${killStatus} -eq 1 ]; then
+			successKill=$(( ${successKill} + 1 ))
+			rm ${pidFile}
+		else
+			log ERROR "GYMPB0000E: Unable to kill ${pid}."
+		fi
+	done
+			
+	if [ ${successKill} -eq ${#hadoopPidFiles[@]} ]; then
+		log INFO "GYMPB0000I: ${HADOOP_READABLE} killed."
+	else
+		log ERROR "GYMPB0000E: ${HADOOP_READABLE} not killed."
+	fi
+}
+
+## Usage: killMultiplePid <applicationName> <pidFile 1> <pidFile 2> ... <pidFile n>
+killMultiplePid() {
+	appName=${1}
+	
+	pidFiles=()
+	shift # first shift
+	while [ ! -z "${1}" ]; do
+		pidFiles+=(${1})
+		shift
+	done
+	
+	if [ ${#pidFiles[@]} -eq 0 ]; then
+		log INFO "GYMPB0000I: `getReadableName ${appName}` not started."
+	else
+		successKill=0
+		for pidFile in "${pidFiles[@]}"; do
+			pid=`head -1 ${pidFile}`
+			killStatus=`killRoutineHelper ${pid}`
+			if [ ${killStatus} -eq 1 ]; then
+				successKill=$(( ${successKill} + 1 ))
+				rm ${pidFile}
+			else
+				log ERROR "GYMPB0000E: Unable to kill ${pid}."
+			fi
+		done
+
+		if [ ${successKill} -eq ${#pidFiles[@]} ]; then
+			log INFO "GYMPB0000I: `getReadableName ${appName}` killed."
+		else
+			log ERROR "GYMPB0000E: `getReadableName ${appName}` not killed."
+		fi	
+	fi
+}
+
 killRoutine() {
 	case "${1}" in 
-		"${ZOOKEEPER_APP_NAME}") ;;
-		"${KAFKA_APP_NAME}") ;;
-		"${HADOOP_APP_NAME}") 
-			hadoopPidFiles=(`getHadoopPidFiles`)
-			successKill=0
-			for pidFile in "${hadoopPidFiles[@]}"; do
-				pid=`head -1 ${pidFile}`
-				killStatus=`killRoutineHelper ${pid}`
-				if [ ${killStatus} -eq 1 ]; then
-					successKill=$(( ${successKill} + 1 ))
-					rm ${pidFile}
-				else
-					log ERROR "GYMPB0000E: Unable to kill ${pid}."
-				fi
-			done
-			
-			if [ ${successKill} -eq ${#hadoopPidFiles[@]} ]; then
-				log INFO "GYMPB0000I: ${HADOOP_READABLE} killed."
-			else
-				log ERROR "GYMPB0000r: ${HADOOP_READABLE} not killed."
-			fi
+		"${ZOOKEEPER_APP_NAME}") 
+			killInfra ${ZOOKEEPER_APP_NAME}
 		;;
-		# "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}") ;;
-		"${NPI_APP_NAME}") ;;
+		"${KAFKA_APP_NAME}") 
+			killInfra ${KAFKA_APP_NAME}	 	
+		;;
+		"${HADOOP_APP_NAME}") 
+			killMultiplePid ${HADOOP_APP_NAME} `getHadoopPidFiles`
+ 		;;
+		"${NPI_APP_NAME}") 
+			killMultiplePid ${NPI_APP_NAME} `getNpiPidFiles`
+		;;
 		"all")
-			# This rountine is not clean, need revision ???
-			killRoutineHelper "npi"; sleep ${SLEEP_TIME}
-			killRoutineHelper "hadoop"; sleep ${SLEEP_TIME}
-			killRoutineHelper "kafka"; sleep ${SLEEP_TIME}
-			killRoutineHelper "zookeeper"
-			exit 0 # Ends here
+			log INFO "GYMPB0000I: TODO.";
 		;;
 		*)
-			log INFO "GYMPB0000I: Application name is missing."
-			npidUsage
-			exit 0 # explicitly, since no error
+			log INFO "GYMPB0000I: Application name is missing."; npidUsage
 		;;
 	esac
 }
