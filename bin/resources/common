@@ -129,9 +129,7 @@ stopApplication() {
 ## since each application has dedicated PID file
 ## Example,
 ## 	1. checkStatus zookeeper
-##	2. checkStatus npi-storage
-## Pending:
-##	1. More defensive input checking ???
+##	2. checkStatus npi
 ##
 checkStatus() {
 	if [ -f ${VAR_DIR}/${1}.pid ]; then
@@ -149,6 +147,10 @@ checkStatus() {
 
 ##
 ## Check application status based on the PID files found in var/*
+## 1. Zookeeper: Via ZOOKEEPER_URL
+## 2. Kafka: Via ZOOKEEPER_URL
+## 3. Hadoop: Via Hadoop Resource Manager Web Service
+## 4. NPI: Via PID (Local instance only)
 ##
 checkAllStatus() {
 	allAvailPidFile=`ls -1 ${VAR_DIR}`
@@ -241,3 +243,16 @@ getReadableName() {
 		;;
 	esac
 }
+
+##
+## Get PID files related to NPI only
+## Example storage.pid, analytics.pid, collector.pid, ui.pid, npi.pid
+## Return as string delimited by space
+## Best practice to return into variable quoted by ()
+##
+getNpiPidFiles() {
+	grepPidFilesStr="(${NPI_UI_APP_NAME}|${NPI_COLLECTOR_APP_NAME}|${NPI_ANALYTICS_APP_NAME}|${NPI_STORAGE_APP_NAME}|${NPI_APP_NAME})"
+	npiPidFiles=`ls ${VAR_DIR} | egrep ${grepPidFilesStr}`
+	echo ${npiPidFiles[*]}
+}
+

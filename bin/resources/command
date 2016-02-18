@@ -63,8 +63,11 @@ stopRountine() {
 		"${HADOOP_APP_NAME}")
 			stopHadoop
 		;;
-		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
+		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
 			stopNpi ${1}
+		;;
+		"${NPI_APP_NAME}")
+			stopNpi "npi"
 		;;
 		"all")
 			stopNpi "npi"; sleep ${SLEEP_TIME}
@@ -137,13 +140,17 @@ killRoutineHelper() {
 
 ##
 ## For CMD "kill"
+## Only could kill local processes NOT remote
 ##
 killRoutine() {
 	case "${1}" in 
 		"${ZOOKEEPER_APP_NAME}") ;;
 		"${KAFKA_APP_NAME}") ;;
-		"${HADOOP_APP_NAME}") ;;
-		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}") ;;
+		"${HADOOP_APP_NAME}") 
+			getHadoopPids
+		;;
+		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}") ;;
+		"${NPI_APP_NAME}") ;;
 		"all")
 			# This rountine is not clean, need revision ???
 			killRoutineHelper "npi"; sleep ${SLEEP_TIME}
@@ -159,16 +166,69 @@ killRoutine() {
 		;;
 	esac
 	
-	killRoutineHelper ${1}
+	# killRoutineHelper ${1}
 }
 
 ##
 ## For CMD "status"
 ##
-statusRoutine() {
-	if [ -z "${1}" ] || [ "${1}" == "all" ]; then
-		checkAllStatus
+printZookeeperStatus() {
+	if [ `isZookeeperStarted` -eq 1 ]; then
+		log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} started."
 	else
-		checkStatus ${1}
+		log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} stopped."
 	fi
+}
+
+printKafkaStatus() {
+	if [ `isKafkaStarted` -eq 1 ]; then
+		log INFO "GYMPB0000I: ${KAFKA_READABLE} started."
+	else
+		log INFO "GYMPB0000I: ${KAFKA_READABLE} stopped."
+	fi
+}
+
+printHadoopStatus() {
+	if [ `isHadoopStarted` -eq 1 ]; then
+		log INFO "GYMPB0000I: ${HADOOP_READABLE} started."
+	else
+		log INFO "GYMPB0000I: ${HADOOP_READABLE} stopped."
+	fi
+}
+
+printNpiStatus() {
+	npiStatus=`getNpiStatus`
+	if [ ${npiStatus} -eq 0 ]; then
+		log INFO "GYMPB0000I: ${NPI_READABLE} stopped."
+	elif [ ${npiStatus} -eq 1 ]; then
+		log INFO "GYMPB0000I: ${NPI_READABLE} started."
+	elif [ ${npiStatus} -eq 2 ]; then
+		log INFO "GYMPB0000I: ${NPI_READABLE} partially started."
+	fi
+}
+
+statusRoutine() {
+	case "${1}" in
+		"${ZOOKEEPER_APP_NAME}") 
+			printZookeeperStatus
+		;;
+		"${KAFKA_APP_NAME}") 
+			getKafkaStatus		
+		;;
+		"${HADOOP_APP_NAME}") 
+			getHadoopStatus		
+		;;
+		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}") 
+			getNpiStatus
+		;;
+		"${NPI_APP_NAME}") ;;
+		"all")
+			getZookeeperStatus; getKafkaStatus; getHadoopStatus; printNpiStatus
+		;;
+		*)
+			log INFO "GYMPB0000I: Application name is missing."
+			npidUsage
+			exit 0 # explicitly, since no error
+		;;
+	esac
 }

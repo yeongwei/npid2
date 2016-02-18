@@ -130,9 +130,7 @@ startNpi() {
 stopNpi() {
 	log INFO "GYMPB0000I: Stopping `getReadableName ${1}`"
 
-	grepPidFilesStr="(${NPI_UI_APP_NAME}|${NPI_COLLECTOR_APP_NAME}|${NPI_ANALYTICS_APP_NAME}|${NPI_STORAGE_APP_NAME}|${NPI_APP_NAME})"
-	npiPidFiles=`ls ${VAR_DIR} | egrep ${grepPidFilesStr}`
-	npiPidFiles=(${npiPidFiles[*]})
+	npiPidFiles=(`getNpiPidFiles`)
 	errorsFound=0
 
 	for pidFile in "${npiPidFiles[@]}"; do
@@ -167,4 +165,41 @@ stopNpi() {
 	done;
 
 	log INFO "GYMPB0000I: `getReadableName ${1}` stopped."
+}
+
+##
+## Checks for 4 components,
+## storage, analytics, collector, ui
+## 0 - stopped, 1 - started, 2 - partially started
+##
+getNpiStatus() {
+	numberOfComponents=4
+	npiPidFiles=(`getNpiPidFiles`)
+	numberOfStartedComponents=0
+	if [ ${#npiPidFiles[@]} -eq ${numberOfComponents} ]; then
+		for pidFile in "${npiPidFiles[@]}"; do
+			componentName=`echo $pidFile | cut -d. -f1`
+			pidStatus=`isValidPid ${componentName}`
+			if [ ${pidStatus} -eq 1 ]; then
+				numberOfStartedComponents=$(( ${numberOfStartedComponents} +  1 ))
+			fi
+		done
+
+		if [ ${numberOfStartedComponents} -eq ${numberOfComponents} ]; then
+			# log INFO "GYMPB0000I: ${NPI_READABLE} started."
+			echo 1
+		elif [ ${numberOfStartedComponents} -eq 0 ]; then
+			# log INFO "GYMPB0000I: ${NPI_READABLE} stopped."
+			echo 0
+		else
+			# log INFO "GYMPB0000I: ${NPI_READABLE} partially started."
+			echo 2
+		fi
+	elif [ ${#npiPidFiles[@]} -eq 0 ]; then
+		# log INFO "GYMPB0000I: ${NPI_READABLE} stopped."
+		echo 0
+	else
+		# log INFO "GYMPB0000I: ${NPI_READABLE} partially started."
+		echo 2
+	fi
 }

@@ -44,9 +44,7 @@ needHadoop() {
 ## 	1. Need to check remote NPI instance ???
 ##
 isAnyNpiRunning() {
-	grepPidFilesStr="(${NPI_UI_APP_NAME}|${NPI_COLLECTOR_APP_NAME}|${NPI_ANALYTICS_APP_NAME}|${NPI_STORAGE_APP_NAME}|${NPI_APP_NAME})"
-	npiPidFiles=`ls ${VAR_DIR} | egrep ${grepPidFilesStr}`
-	npiPidFiles=(${npiPidFiles[*]})
+	npiPidFiles=(`getNpiPidFiles`)
 
 	for pidFile in "${npiPidFiles[@]}"; do
 		componentName=`echo ${pidFile} | cut -d. -f1`

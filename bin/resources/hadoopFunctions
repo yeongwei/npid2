@@ -240,33 +240,50 @@ stopHadoop() {
 
 	soureceHadoopEnv
 
-	pid=`getPID ${HADOOP_APP_NAME}`
-	if [ -z "$pid" ]; then
-		log INFO "GYMPB0000I: ${HADOOP_READABLE} was not running."
-	else
+	# pid=`getPID ${HADOOP_APP_NAME}`
+	# if [ -z "$pid" ]; then
+	#	log INFO "GYMPB0000I: ${HADOOP_READABLE} was not running."
+	# else
 		dt_service stop
 		if [ ! -z "${NAMENODE}" ]; then
 			nn_service stop
 		fi
 
-		tryCount=${TRY_COUNT}
-		isHadoopDown=0
+	#	tryCount=${TRY_COUNT}
+	#	isHadoopDown=0
 
-		while [ $tryCount -ne 0 ]; do
-			psStatus=`getPsByName ${HADOOP_READABLE}`
-			if [ -z "${psStatus}" ]; then
-				isHadoopDown=1
-				break
-			fi
-			sleep ${SLEEP_TIME}
-			tryCount=$(( ${tryCount} - 1 ))
-		done
+	#	while [ $tryCount -ne 0 ]; do
+	#		psStatus=`getPsByName ${HADOOP_READABLE}`
+	#		if [ -z "${psStatus}" ]; then
+	#			isHadoopDown=1
+	#			break
+	#		fi
+	#		sleep ${SLEEP_TIME}
+	#		tryCount=$(( ${tryCount} - 1 ))
+	#	done
 		
-		if [ ${isHadoopDown} -eq 0 ]; then
-			emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} is not stopping."
-		else
+	#	if [ ${isHadoopDown} -eq 0 ]; then
+	#		emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} is not stopping."
+	#	else
 			log INFO "GYMPB0000I: ${HADOOP_READABLE} stopped."
-			removePID ${HADOOP_APP_NAME}
-		fi
-	fi
+	#		removePID ${HADOOP_APP_NAME}
+	#	fi
+	# fi
 }
+
+##
+##
+##
+getHadoopPids() {
+	# var/yarn-sherpa-resourcemanager.pid
+	# var/yarn-sherpa-nodemanager.pid
+	# var/hadoop-sherpa-datanode.pid
+	# var/hadoop-sherpa-secondarynamenode.pid
+	# var/hadoop-sherpa-namenode.pid
+	hadoopPidFiles=("${VAR_DIR}/yarn-*-resourcemanager.pid" "${VAR_DIR}/yarn-*-nodemanager.pid" "${VAR_DIR}/hadoop-*-datanode.pid" "${VAR_DIR}/hadoop-*-secondarynamenode.pid" "${VAR_DIR}/hadoop-*-namenode.pid")
+
+	for pidFile in "${hadoopPidFiles[@]}"; do
+		echo `head -1 ${pidFile}`
+	done
+}
+
