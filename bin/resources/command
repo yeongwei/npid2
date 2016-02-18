@@ -63,9 +63,9 @@ stopRountine() {
 		"${HADOOP_APP_NAME}")
 			stopHadoop
 		;;
-		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
-			stopNpi ${1}
-		;;
+		# "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
+		#	stopNpi ${1}
+		# ;;
 		"${NPI_APP_NAME}")
 			stopNpi "npi"
 		;;
@@ -76,8 +76,7 @@ stopRountine() {
 			stopZookeeper
 		;;
 		*)
-			log INFO ${defaultLog}
-			npidUsage
+			log INFO ${defaultLog}; npidUsage
 		;;
 	esac
 }
@@ -96,12 +95,14 @@ restartRoutine() {
 		"${HADOOP_APP_NAME}")
 			stopHadoop; sleep ${SLEEP_TIME}; startHadoop
 		;;
-		"${NPI_APP_NAME}" | "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
-			stopNpi "npi"; sleep ${SLEEP_TIME}; startNpi ${1}
+		# "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
+		#	stopNpi ${1}; sleep ${SLEEP_TIME}; startNpi ${1}
+		# ;;
+		"${NPI_APP_NAME}")
+			stopNpi "npi"; sleep ${SLEEP_TIME}; stopNpi "npi"
 		;;
 		*)
-			log INFO ${defaultLog}
-			npidUsage
+			log INFO ${defaultLog}; npidUsage
 		;;
 	esac
 }
@@ -110,6 +111,39 @@ restartRoutine() {
 ## For CMD "kill"
 ##
 killRoutineHelper() {
+	errors=0
+	pidStatus=`ps -ef | grep ${1} | grep -v grep`
+	if [ -z "${pidStatus}" ]; then
+		errors=$(( ${errors} + 1 ))
+	else
+		killAssociatively9 ${1}
+
+		tryCount=${TRY_COUNT}
+		isKilled=0
+
+		while [ $tryCount -ne 0 ]; do
+			psStatus=`ps -ef | grep ${pid} | grep -v grep`
+			if [ -z "${psStatus}" ]; then
+				isKilled=1
+				break
+			fi
+			sleep ${SLEEP_TIME}
+			tryCount=$(( ${tryCount} - 1 ))
+		done
+
+		if [ ${isKilled} -ne 1 ]; then
+			errors=$(( ${errors} + 1 ))
+		fi
+	fi
+
+	if [ ${errors} -eq 0 ]; then
+		echo 1
+	else
+		echo 0
+	fi
+}
+
+killRoutineHelper2() {
 	pid=`getPID ${1}`
 	if [ -z "${pid}" ]; then
 		log INFO "GYMPB0000I: ${1} is not started."
@@ -140,6 +174,7 @@ killRoutineHelper() {
 
 ##
 ## For CMD "kill"
+## Uses the kill -9 <PID>
 ## Only could kill local processes NOT remote
 ##
 killRoutine() {
@@ -147,9 +182,26 @@ killRoutine() {
 		"${ZOOKEEPER_APP_NAME}") ;;
 		"${KAFKA_APP_NAME}") ;;
 		"${HADOOP_APP_NAME}") 
-			getHadoopPids
+			hadoopPidFiles=(`getHadoopPidFiles`)
+			successKill=0
+			for pidFile in "${hadoopPidFiles[@]}"; do
+				pid=`head -1 ${pidFile}`
+				killStatus=`killRoutineHelper ${pid}`
+				if [ ${killStatus} -eq 1 ]; then
+					successKill=$(( ${successKill} + 1 ))
+					rm ${pidFile}
+				else
+					log ERROR "GYMPB0000E: Unable to kill ${pid}."
+				fi
+			done
+			
+			if [ ${successKill} -eq ${#hadoopPidFiles[@]} ]; then
+				log INFO "GYMPB0000I: ${HADOOP_READABLE} killed."
+			else
+				log ERROR "GYMPB0000r: ${HADOOP_READABLE} not killed."
+			fi
 		;;
-		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}") ;;
+		# "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}") ;;
 		"${NPI_APP_NAME}") ;;
 		"all")
 			# This rountine is not clean, need revision ???
@@ -165,8 +217,6 @@ killRoutine() {
 			exit 0 # explicitly, since no error
 		;;
 	esac
-	
-	# killRoutineHelper ${1}
 }
 
 ##
@@ -213,22 +263,20 @@ statusRoutine() {
 			printZookeeperStatus
 		;;
 		"${KAFKA_APP_NAME}") 
-			getKafkaStatus		
+			printKafkaStatus		
 		;;
 		"${HADOOP_APP_NAME}") 
-			getHadoopStatus		
+			printHadoopStatus		
 		;;
 		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}") 
-			getNpiStatus
+			printNpiStatus
 		;;
 		"${NPI_APP_NAME}") ;;
 		"all")
-			getZookeeperStatus; getKafkaStatus; getHadoopStatus; printNpiStatus
+			printZookeeperStatus; printKafkaStatus; printHadoopStatus; printNpiStatus
 		;;
 		*)
-			log INFO "GYMPB0000I: Application name is missing."
-			npidUsage
-			exit 0 # explicitly, since no error
+			log INFO "GYMPB0000I: Application name is missing."; npidUsage; exit 0 # explicitly, since no error
 		;;
 	esac
 }

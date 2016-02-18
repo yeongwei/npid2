@@ -187,6 +187,7 @@ shift
 ARG2=$1
 
 # Manage input arguments from here
+# Might need to be a little forgiving
 if [ -z "${ARG1}" ] || [ -z "${ARG2}" ] ; then
 	log ERROR "GYMPB0106E: Not enough arguments."
 	npidUsage

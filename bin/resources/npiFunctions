@@ -126,6 +126,7 @@ startNpi() {
 
 ##
 ## Find out all NPI related PIDs and SIGTERM them
+## NPI consist of storage, analytics, collector, ui instances
 ##
 stopNpi() {
 	log INFO "GYMPB0000I: Stopping `getReadableName ${1}`"

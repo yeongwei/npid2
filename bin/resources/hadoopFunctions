@@ -272,9 +272,10 @@ stopHadoop() {
 }
 
 ##
+## Get all PID files related to Hadoop
 ##
-##
-getHadoopPids() {
+getHadoopPidFiles() {
+	# Sample Hadoop PID files
 	# var/yarn-sherpa-resourcemanager.pid
 	# var/yarn-sherpa-nodemanager.pid
 	# var/hadoop-sherpa-datanode.pid
@@ -282,8 +283,17 @@ getHadoopPids() {
 	# var/hadoop-sherpa-namenode.pid
 	hadoopPidFiles=("${VAR_DIR}/yarn-*-resourcemanager.pid" "${VAR_DIR}/yarn-*-nodemanager.pid" "${VAR_DIR}/hadoop-*-datanode.pid" "${VAR_DIR}/hadoop-*-secondarynamenode.pid" "${VAR_DIR}/hadoop-*-namenode.pid")
 
+	fileStr=""
 	for pidFile in "${hadoopPidFiles[@]}"; do
-		echo `head -1 ${pidFile}`
+		fileStr="${fileStr} ${pidFile}"
 	done
+
+	echo ${fileStr};
 }
 
+##
+## Hadoop spawns various process, therefore a single kill is not enoughh
+##
+killHadoop() {
+	log INFO "GYMPB0000I: TODO."
+}
