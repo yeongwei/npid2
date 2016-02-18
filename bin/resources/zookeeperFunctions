@@ -59,7 +59,7 @@ startZookeeper() {
 	status=`isPidValid "${ZOOKEEPER_APP_NAME}"`
 	emergencyExit ${status} "GYMPB0000E: ${ZOOKEEPER_READABLE} is already running."
 
-	log INFO "GYMPB0000I: Starting ${ZOOKEEPER_READABLE}"
+	log INFO "GYMPB0000I: Starting ${ZOOKEEPER_READABLE}."
 	cd ${SERVICES_DIR}/${KAFKA_APP_NAME} && ./bin/zookeeper-server-start.sh ${SERVICES_DIR}/conf/${KAFKA_APP_NAME}/${ZOOKEEPER_APP_NAME}.properties >>${ZOOKEEPER_LOG} 2>>${ZOOKEEPER_LOG} &
 	writePID ${ZOOKEEPER_APP_NAME} ${!}
 	checkInfraStarted "stat" "Mode:" ${ZOOKEEPER_READABLE}
@@ -70,7 +70,7 @@ startZookeeper() {
 ## and checking PID should suffice
 ##
 stopZookeeper() {
-	log INFO "GYMPB0000I: Stopping ${ZOOKEEPER_READABLE}"
+	log INFO "GYMPB0000I: Stopping ${ZOOKEEPER_READABLE}."
 	checkDependentee ${ZOOKEEPER_APP_NAME}	
 
 	# reference from https://github.com/linkedin/linkedin-zookeeper/blob/master/org.linkedin.zookeeper-server/src/cmdline/resources/bin/zkServer.sh

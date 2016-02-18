@@ -30,7 +30,7 @@ startKafka() {
 ##
 ##
 stopKafka() {
-	log INFO "GYMPB0000I: About to stop ${KAFKA_READABLE}"
+	log INFO "GYMPB0000I: Stopping ${KAFKA_READABLE}."
 	checkDependentee ${KAFKA_APP_NAME}
 
 	pid=`getPID ${KAFKA_APP_NAME}`
