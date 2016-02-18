@@ -23,9 +23,6 @@ startRoutine() {
 		"${HADOOP_APP_NAME}")
 			startHadoop
 		;;
-		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
-			startNpi ${1}
-		;;
 		"${NPI_APP_NAME}")
 			startNpi ${NPI_STORAGE_APP_NAME}; sleep ${SLEEP_TIME}
 			startNpi ${NPI_ANALYTICS_APP_NAME}; sleep ${SLEEP_TIME}
@@ -87,19 +84,19 @@ stopRountine() {
 restartRoutine() {
 	case "${1}" in 
 		"${ZOOKEEPER_APP_NAME}")
-			stopZookeeper; sleep ${SLEEP_TIME}; startZookeeper
+			stopRountine ${ZOOKEEPER_APP_NAME}; sleep ${SLEEP_TIME}; startRoutine ${ZOOKEEPER_APP_NAME}
 		;;
 		"${KAFKA_APP_NAME}")
-			stopKafka; sleep ${SLEEP_TIME}; startKafka
+			stopRountine ${KAFKA_APP_NAME}; sleep ${SLEEP_TIME}; startRoutine ${KAFKA_APP_NAME}
 		;;
 		"${HADOOP_APP_NAME}")
-			stopHadoop; sleep ${SLEEP_TIME}; startHadoop
+			stopRountine ${HADOOP_APP_NAME}; sleep ${SLEEP_TIME}; startRoutine ${HADOOP_APP_NAME}
 		;;
-		# "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
-		#	stopNpi ${1}; sleep ${SLEEP_TIME}; startNpi ${1}
-		# ;;
 		"${NPI_APP_NAME}")
-			stopNpi "npi"; sleep ${SLEEP_TIME}; stopNpi "npi"
+			stopRountine ${NPI_APP_NAME}; sleep ${SLEEP_TIME}; startRoutine ${NPI_APP_NAME}
+		;;
+		"all")
+			stopRountine "all"; sleep ${SLEEP_TIME}; startRoutine "all"
 		;;
 		*)
 			log INFO ${defaultLog}; npidUsage
@@ -140,35 +137,6 @@ killRoutineHelper() {
 		echo 1
 	else
 		echo 0
-	fi
-}
-
-killRoutineHelper2() {
-	pid=`getPID ${1}`
-	if [ -z "${pid}" ]; then
-		log INFO "GYMPB0000I: ${1} is not started."
-	else 
-		killAssociatively9 ${pid}
-		
-		tryCount=${TRY_COUNT}
-		isKilled=0
-
-		while [ $tryCount -ne 0 ]; do
-			psStatus=`ps -ef | grep ${pid} | grep -v grep`
-			if [ -z "${psStatus}" ]; then
-				isKilled=1
-				break
-			fi
-			sleep ${SLEEP_TIME}
-			tryCount=$(( ${tryCount} - 1 ))
-		done
-		
-		if [ ${isKilled} -eq 1 ]; then
-			removePID ${1}
-			log INFO "GYMPB0000I: ${1} has been killed."
-		else
-			log ERROR "GYMPB0000I: Unable to kill ${1} with PID ${pid}."
-		fi
 	fi
 }
 
@@ -271,7 +239,10 @@ killRoutine() {
 			killMultiplePid ${NPI_APP_NAME} `getNpiPidFiles`
 		;;
 		"all")
-			log INFO "GYMPB0000I: TODO.";
+			killMultiplePid ${NPI_APP_NAME} `getNpiPidFiles`; sleep ${SLEEP_TIME}
+			killMultiplePid ${HADOOP_APP_NAME} `getHadoopPidFiles`; sleep ${SLEEP_TIME}
+			killInfra ${KAFKA_APP_NAME}; sleep ${SLEEP_TIME}
+			killInfra ${ZOOKEEPER_APP_NAME}; sleep ${SLEEP_TIME}
 		;;
 		*)
 			log INFO "GYMPB0000I: Application name is missing."; npidUsage
