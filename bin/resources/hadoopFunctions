@@ -285,15 +285,10 @@ getHadoopPidFiles() {
 
 	fileStr=""
 	for pidFile in "${hadoopPidFiles[@]}"; do
-		fileStr="${fileStr} ${pidFile}"
+		if [ -f ${pidFile} ]; then
+			fileStr="${fileStr} ${pidFile}"
+		fi
 	done
 
 	echo ${fileStr};
-}
-
-##
-## Hadoop spawns various process, therefore a single kill is not enoughh
-##
-killHadoop() {
-	log INFO "GYMPB0000I: TODO."
 }
