@@ -62,7 +62,8 @@ copy_spark_jar_and_conf() {
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/core-site.xml /work/hadoop-conf/core-site.xml
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/hdfs-site.xml /work/hadoop-conf/hdfs-site.xml
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/yarn-site.xml /work/hadoop-conf/yarn-site.xml
-	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/spark-defaults.conf /work/hadoop-conf/spark-defaults.conf
+	# $NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/spark-defaults.conf /work/hadoop-conf/spark-defaults.conf
+	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/conf/spark/spark-defaults.conf /work/hadoop-conf/spark-defaults.conf
 
 	log DEBUG "GYMPB0000D: Creating /work/spark-lib folder"
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -mkdir -p /work/spark-lib
