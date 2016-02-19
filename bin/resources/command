@@ -220,7 +220,7 @@ killRoutine() {
 			killInfra ${ZOOKEEPER_APP_NAME}; sleep ${SLEEP_TIME}
 		;;
 		*)
-			log INFO "GYMPB0000I: Application name is missing."; npidUsage
+			log INFO ${defaultLog}; npidUsage
 		;;
 	esac
 }
@@ -281,7 +281,7 @@ statusRoutine() {
 			printZookeeperStatus; printKafkaStatus; printHadoopStatus; printNpiStatus
 		;;
 		*)
-			log INFO "GYMPB0000I: Application name is missing."; npidUsage;
+			log INFO ${defaultLog}; npidUsage;
 		;;
 	esac
 }
