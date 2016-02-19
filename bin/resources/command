@@ -158,6 +158,7 @@ killInfra() {
 }
 
 ## Usage: killMultiplePid <applicationName> <pidFile 1> <pidFile 2> ... <pidFile n>
+## PID files are all in var/*
 killMultiplePid() {
 	appName=${1}
 	
@@ -172,22 +173,29 @@ killMultiplePid() {
 		log INFO "GYMPB0000I: `getReadableName ${appName}` not started."
 	else
 		successKill=0
+		nothingToKill=0
 		for pidFile in "${pidFiles[@]}"; do
-			pid=`head -1 ${pidFile}`
-			killStatus=`killRoutineHelper ${pid}`
-			if [ ${killStatus} -eq 1 ]; then
-				successKill=$(( ${successKill} + 1 ))
-				rm ${pidFile}
-			else
-				log ERROR "GYMPB0000E: Unable to kill ${pid}."
+			if [ -f ${VAR_DIR}/${pidFile} ]; then
+				pid=`head -1 ${VAR_DIR}/${pidFile}`
+				killStatus=`killRoutineHelper ${pid}`
+				if [ ${killStatus} -eq 1 ]; then
+					successKill=$(( ${successKill} + 1 ))
+					rm ${pidFile}
+				else
+					log ERROR "GYMPB0000E: Unable to kill ${pid}."
+				fi
+			else 
+				nothingToKill=$(( ${nothingToKill} + 1 ))
 			fi
 		done
 
-		if [ ${successKill} -eq ${#pidFiles[@]} ]; then
+		if [ ${successKill} -eq ${#pidFiles[@]} ] && [ ${nothingToKill} -eq 0 ]; then
 			log INFO "GYMPB0000I: `getReadableName ${appName}` killed."
+		elif [ ${nothingToKill} -eq ${#pidFiles[@]} ]; then
+			log INFO "GYMPB0000I: `getReadableName ${appName}` not started."
 		else
 			log ERROR "GYMPB0000E: `getReadableName ${appName}` not killed."
-		fi	
+		fi			
 	fi
 }
 

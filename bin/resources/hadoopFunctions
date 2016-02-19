@@ -182,7 +182,7 @@ getHadoopPidFiles() {
 	# var/hadoop-sherpa-datanode.pid
 	# var/hadoop-sherpa-secondarynamenode.pid
 	# var/hadoop-sherpa-namenode.pid
-	hadoopPidFiles=("${VAR_DIR}/yarn-*-resourcemanager.pid" "${VAR_DIR}/yarn-*-nodemanager.pid" "${VAR_DIR}/hadoop-*-datanode.pid" "${VAR_DIR}/hadoop-*-secondarynamenode.pid" "${VAR_DIR}/hadoop-*-namenode.pid")
+	hadoopPidFiles=("yarn-*-resourcemanager.pid" "yarn-*-nodemanager.pid" "hadoop-*-datanode.pid" "hadoop-*-secondarynamenode.pid" "hadoop-*-namenode.pid")
 
 	fileStr=""
 	for pidFile in "${hadoopPidFiles[@]}"; do
