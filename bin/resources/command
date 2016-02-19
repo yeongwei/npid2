@@ -22,20 +22,14 @@ startRoutine() {
 			startHadoop
 		;;
 		"${NPI_APP_NAME}")
-			startNpi ${NPI_STORAGE_APP_NAME}; sleep ${SLEEP_TIME}
-			startNpi ${NPI_ANALYTICS_APP_NAME}; sleep ${SLEEP_TIME}
-			startNpi ${NPI_COLLECTOR_APP_NAME}; sleep ${SLEEP_TIME}
-			startNpi ${NPI_UI_APP_NAME}
+			startNpiComponents
 		;;
 		"all")
 			startZookeeper; sleep ${SLEEP_TIME}
 			startKafka; sleep ${SLEEP_TIME}
 			startHadoop; sleep ${SLEEP_TIME}
 
-			startNpi ${NPI_STORAGE_APP_NAME}; sleep ${SLEEP_TIME}
-			startNpi ${NPI_ANALYTICS_APP_NAME}; sleep ${SLEEP_TIME}
-			startNpi ${NPI_COLLECTOR_APP_NAME}; sleep ${SLEEP_TIME}
-			startNpi ${NPI_UI_APP_NAME}
+			startNpiComponents
 		;;
 		*)
 			log INFO ${defaultLog}; npidUsage
@@ -115,8 +109,7 @@ killRoutineHelper() {
 		while [ $tryCount -ne 0 ]; do
 			psStatus=`ps -ef | grep ${pid} | grep -v grep`
 			if [ -z "${psStatus}" ]; then
-				isKilled=1
-				break
+				isKilled=1; break
 			fi
 			sleep ${SLEEP_TIME}
 			tryCount=$(( ${tryCount} - 1 ))
@@ -134,32 +127,9 @@ killRoutineHelper() {
 	fi
 }
 
-# Kill Zookeeper or Kafka
-# Usage: killInfra zookeeper, killInfra kafka
-killInfra() {
-	pidFile=${VAR_DIR}/${1}.pid
-	if [ -f ${pidFile} ]; then
-		pid=`head -1 ${pidFile}`
-		pidStatus=`isPidValid ${1}`
-		if [ ${pidStatus} -eq 1 ]; then
-			killStatus=`killRoutineHelper ${pid}`
-			if [ ${killStatus} -eq 1 ]; then
-				rm ${pidFile}
-				log INFO "GYMPB0000I: `getReadableName ${1}` killed."
-			else				
-				log ERROR "GYMPB0000E: `getReadableName ${1}` not killed."
-			fi
-		else 
-			log INFO "GYMPB0000I: `getReadableName ${1}` not started."
-		fi
-	else 
-			log INFO "GYMPB0000I: `getReadableName ${1}` not started."
-	fi
-}
-
-## Usage: killMultiplePid <applicationName> <pidFile 1> <pidFile 2> ... <pidFile n>
+## Usage: killPids <applicationName> <pidFile 1> <pidFile 2> ... <pidFile n>
 ## PID files are all in var/*
-killMultiplePid() {
+killPids() {
 	appName=${1}
 	
 	pidFiles=()
@@ -202,22 +172,22 @@ killMultiplePid() {
 killRoutine() {
 	case "${1}" in 
 		"${ZOOKEEPER_APP_NAME}") 
-			killInfra ${ZOOKEEPER_APP_NAME}
+			killPids ${ZOOKEEPER_APP_NAME} ${ZOOKEEPER_APP_NAME}.pid
 		;;
 		"${KAFKA_APP_NAME}") 
-			killInfra ${KAFKA_APP_NAME}	 	
+			killPids ${KAFKA_APP_NAME} ${ZOOKEEPER_APP_NAME}.pid	 	
 		;;
 		"${HADOOP_APP_NAME}") 
-			killMultiplePid ${HADOOP_APP_NAME} `getHadoopPidFiles`
+			killPids ${HADOOP_APP_NAME} `getHadoopPidFiles`
  		;;
 		"${NPI_APP_NAME}") 
-			killMultiplePid ${NPI_APP_NAME} `getNpiPidFiles`
+			killPids ${NPI_APP_NAME} `getNpiPidFiles`
 		;;
 		"all")
-			killMultiplePid ${NPI_APP_NAME} `getNpiPidFiles`; sleep ${SLEEP_TIME}
-			killMultiplePid ${HADOOP_APP_NAME} `getHadoopPidFiles`; sleep ${SLEEP_TIME}
-			killInfra ${KAFKA_APP_NAME}; sleep ${SLEEP_TIME}
-			killInfra ${ZOOKEEPER_APP_NAME}; sleep ${SLEEP_TIME}
+			killPids ${NPI_APP_NAME} `getNpiPidFiles`; sleep ${SLEEP_TIME}
+			killPids ${HADOOP_APP_NAME} `getHadoopPidFiles`; sleep ${SLEEP_TIME}
+			killPids ${KAFKA_APP_NAME}; sleep ${SLEEP_TIME}
+			killPids ${ZOOKEEPER_APP_NAME}; sleep ${SLEEP_TIME}
 		;;
 		*)
 			log INFO ${defaultLog}; npidUsage

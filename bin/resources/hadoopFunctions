@@ -198,6 +198,19 @@ getHadoopPidFiles() {
 ##
 ##
 ##
+getHadoopPids() {
+	hadoopPidFiles=(`getHadoopPidFiles`)
+	hadoopPids=""
+	for pidFile in "${hadoopPidFiles[@]}"; do
+		hadoopPids="${hadoopPids} `head -1 ${VAR_DIR}/$pidFile`"
+	done
+
+	echo ${hadoopPids};
+}
+
+##
+##
+##
 stopHadoop() {
 	log INFO "GYMPB0000I: Stopping ${HADOOP_READABLE}."
 	checkDependentee ${HADOOP_APP_NAME}
@@ -206,6 +219,7 @@ stopHadoop() {
 	
 	numberOfValidPidFiles=5
 	hadoopPidFiles=(`getHadoopPidFiles`)
+	hadoopPids=(`getHadoopPids`)
 
 	if [ ${#hadoopPidFiles[@]} -eq 5 ]; then
 		dt_service stop
@@ -213,22 +227,29 @@ stopHadoop() {
 			nn_service stop
 		fi
 		
-		tryCount=${TRY_COUNT}
-		isHadoopDown=0
+		pidDownCount=0
+		for pid in "${hadoopPids[@]}"; do
+			tryCount=${TRY_COUNT}
+			isPidDown=0
+		
+			while [ $tryCount -ne 0 ]; do
+				psStatus=`ps -ef | grep ${pid} | grep -v grep`	
+				if [ -z "${psStatus}" ]; then
+					isPidDown=1; break
+				fi
+				sleep ${SLEEP_TIME}
+				tryCount=$(( ${tryCount} - 1 ))
+			done
 
-		while [ $tryCount -ne 0 ]; do
-			psStatus=`ps -ef | grep ${HADOOP_APP_NAME} | grep -v grep | grep -v 'zookeeper.properties' | grep -v 'kafka-server.properties' | grep -v ${PROG_NAME}`
-			if [ -z "${psStatus}" ]; then
-				isHadoopDown=1; break
+			if [ ${isPidDown} -eq 1 ]; then
+				pidDownCount=$(( ${pidDownCount} + 1 ))
 			fi
-			sleep ${SLEEP_TIME}
-			tryCount=$(( ${tryCount} - 1 ))
 		done
 
-		if [ ${isHadoopDown} -eq 0 ]; then
-			emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} is not stopping."
-		else
+		if [ ${pidDownCount} -eq ${numberOfValidPidFiles} ]; then
 			log INFO "GYMPB0000I: ${HADOOP_READABLE} stopped."
+		else
+			log ERROR "GYMPB000E: ${HADOOP_READABLE} not stopping."
 		fi
 	elif [ ${#hadoopPidFiles[@]} -eq 0 ]; then
 		log INFO "GYMPB0000I: ${HADOOP_READABLE} not started."

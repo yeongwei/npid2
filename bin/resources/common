@@ -4,6 +4,14 @@
 ## 1. Common functions used by the script
 ## ==================================================
 
+##
+## Component list delimited with space, easier to construct array
+## In shutdown order
+##
+npiComponents() {
+	echo "${NPI_UI_APP_NAME} ${NPI_COLLECTOR_APP_NAME} ${NPI_ANALYTICS_APP_NAME} ${NPI_STORAGE_APP_NAME}"
+}
+
 log() {
   severity=$1
   shift
@@ -194,13 +202,50 @@ getReadableName() {
 }
 
 ##
+## Usage: getComponentList [1]
+##
+getComponentList() {
+	reverse=${1}
+	componentList=(`npiComponents`)
+	componentListStr=""
+	
+	if [ "${reverse}" == "1" ]; then
+		for (( i=${#componentList[@]}-1 ; i>=0 ; i-- )) ; do
+	    		componentListStr="${componentListStr} ${componentList[i]}"
+		done
+	else
+		for component in "${componentList[@]}"; do
+			componentListStr="${componentListStr} ${component}"
+		done
+	fi
+
+	echo componentListStr
+}
+
+##
+## Usage: isNpiComponent storage
+## 1 - yes, 0 - no
+##
+isNpiComponent() {
+	found=0
+	npiComponentList=(`npiComponents`)
+	for component in "${npiComponentList[@]}"; do
+		if [ ${1} == "${component}" ]; then
+			found=1; break
+		fi
+	done;
+
+	echo ${found}
+}
+
+##
 ## Get PID files related to NPI only
 ## Example storage.pid, analytics.pid, collector.pid, ui.pid, npi.pid
 ## Return as string delimited by space
 ## Best practice to return into variable quoted by ()
 ##
 getNpiPidFiles() {
-	npiComponents=(${NPI_UI_APP_NAME} ${NPI_COLLECTOR_APP_NAME} ${NPI_ANALYTICS_APP_NAME} ${NPI_STORAGE_APP_NAME})
+	npiComponents=(`getComponentList`)
 	npiPidFiles=""
 	for component in "${npiComponents[@]}"; do
 		npiPidFiles="${npiPidFiles} ${component}.pid"

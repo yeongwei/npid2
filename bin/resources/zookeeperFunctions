@@ -8,7 +8,7 @@
 ## Check via Zookeeper service
 ## If 1 is up else 0
 ##
-isInfraStarted() {
+zkPing() {
 	host=`echo ${ZOOKEEP_URL} | cut -d: -f1`
 	port=`echo ${ZOOKEEP_URL} | cut -d: -f2`
 
@@ -24,7 +24,7 @@ isInfraStarted() {
 ## Specifically checks for Zookeeper
 ##
 isZookeeperStarted() {
-	echo `isInfraStarted "stat" "Mode:"`
+	echo `zkPing "stat" "Mode:"`
 }
 
 ##
@@ -36,7 +36,7 @@ checkInfraStarted() {
 	isInfraUp=0
 
 	while [ ${tryCount} -ne 0 ]; do
-		ncResult=`isInfraStarted ${1} ${2}`
+		ncResult=`zkPing ${1} ${2}`
 		if [ ${ncResult} -eq 1 ]; then
 			isInfraUp=1; break			
 		fi
@@ -72,7 +72,6 @@ stopZookeeper() {
 	log INFO "GYMPB0000I: Stopping ${ZOOKEEPER_READABLE}."
 	checkDependentee ${ZOOKEEPER_APP_NAME}	
 
-	# reference from https://github.com/linkedin/linkedin-zookeeper/blob/master/org.linkedin.zookeeper-server/src/cmdline/resources/bin/zkServer.sh
 	pid=`getPID ${ZOOKEEPER_APP_NAME}`
 	if [ -z "${pid}" ]; then
 		log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} not started."

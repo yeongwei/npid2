@@ -87,6 +87,7 @@ getPortResolution() {
 ##
 startNpi() {
 	status=`isPidValid ${1}`
+	### This is not relevant, let code continue to go through
 	emergencyExit ${status} "GYMPB0000E: ${NPI_READABLE} component is already running."	
 
 	log INFO "GYMPB0000I: Starting `getReadableName ${1}`"
@@ -98,6 +99,7 @@ startNpi() {
 		emergencyExit "1" "GYMPB0000E: Please provide a ${NPI_APP_NAME} component name."
 	fi 	
 	
+	### Refer to common componentList
 	case "${1}" in
 		"${NPI_STORAGE_APP_NAME}") ;;
 		"${NPI_ANALYTICS_APP_NAME}") ;;
@@ -151,24 +153,16 @@ startNpi() {
 	${NPI_HOME}/bin/npi ${COMPONENT_OPT} > /dev/null 2>> ${NPI_LOG} &
 	writePID ${1} ${!}
 
-	tryCount=${TRY_COUNT}
-	isNpiUp=0
+	log INFO "GYMPB0000I: `getReadableName ${1}` started."
+}
 
-	while [ ${tryCount} -ne 0 ]; do
-		psStatus=`getPsByName 'Dprog.name=npi'`
-		if [ ! -z "${psStatus}" ]; then
-			isNpiUp=1
-			break
-		fi
-		sleep ${SLEEP_TIME}
-		tryCount=$(( ${tryCount} - 1 ))
+##
+## Start all NPI components in ordered sequence
+##
+startNpiComponents() {
+	for component in `getComponentList "1"`; do
+		startNpi ${component}; sleep ${SLEEP_TIME}
 	done
-
-	if [ ${isNpiUp} -eq 1 ]; then
-		log INFO "GYMPB0000I: `getReadableName ${1}` started." 
-	else 
-		log ERROR "GYMPB0000E: `getReadableName ${1}` is not starting."
-	fi
 }
 
 ##
@@ -236,7 +230,8 @@ stopNpi() {
 ## 0 - stopped, 1 - started, 2 - partially started
 ##
 getNpiStatus() {
-	numberOfComponents=4
+	numberOfComponents=(`npiComponents`)
+	numberOfComponents=${#numberOfComponents[@]}
 	npiPidFiles=(`getNpiPidFiles`)
 	numberOfStartedComponents=0
 	if [ ${#npiPidFiles[@]} -eq ${numberOfComponents} ]; then

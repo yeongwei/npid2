@@ -8,7 +8,7 @@
 ## Specifically checks for Kafka
 ##
 isKafkaStarted() {
-	echo `isInfraStarted "dump" "/kafka/"`
+	echo `zkPing "dump" "/kafka/"`
 }
 
 ##
@@ -44,7 +44,7 @@ stopKafka() {
 		isKafkaDown=0
 
 		while [ $tryCount -ne 0 ]; do
-			psStatus=`getPsByName ${KAFKA_APP_NAME}.${KAFKA_APP_NAME}` # reference from https://github.com/kafka-dev/kafka/blob/master/bin/kafka-server-stop.sh
+			psStatus=`getPsByName ${KAFKA_APP_NAME}.${KAFKA_APP_NAME}`
 			if [ -z "${psStatus}" ]; then
 				isKafkaDown=1; break
 			fi
