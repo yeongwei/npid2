@@ -5,8 +5,6 @@
 ## 2. User command example; start, stop, restart ...
 ## ==========================================================
 
-##
-##
 defaultLog="GYMPB0000I Application name is missing / incorrect."
 
 ##
@@ -40,8 +38,7 @@ startRoutine() {
 			startNpi ${NPI_UI_APP_NAME}
 		;;
 		*)
-			log INFO ${defaultLog}
-			npidUsage
+			log INFO ${defaultLog}; npidUsage
 		;;
 	esac
 }
@@ -60,9 +57,6 @@ stopRountine() {
 		"${HADOOP_APP_NAME}")
 			stopHadoop
 		;;
-		# "${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}")
-		#	stopNpi ${1}
-		# ;;
 		"${NPI_APP_NAME}")
 			stopNpi "npi"
 		;;
@@ -113,7 +107,7 @@ killRoutineHelper() {
 	if [ -z "${pidStatus}" ]; then
 		errors=$(( ${errors} + 1 ))
 	else
-		killAssociatively9 ${1}
+		killAssociatively "-9" ${1}
 
 		tryCount=${TRY_COUNT}
 		isKilled=0
@@ -140,12 +134,6 @@ killRoutineHelper() {
 	fi
 }
 
-##
-## For CMD "kill"
-## Uses the kill -9 <PID>
-## ** Only could kill local processes NOT remote
-##
-
 # Kill Zookeeper or Kafka
 # Usage: killInfra zookeeper, killInfra kafka
 killInfra() {
@@ -166,27 +154,6 @@ killInfra() {
 		fi
 	else 
 			log INFO "GYMPB0000I: `getReadableName ${1}` not started."
-	fi
-}
-
-killHadoop() {
-	hadoopPidFiles=(`getHadoopPidFiles`)
-	successKill=0
-	for pidFile in "${hadoopPidFiles[@]}"; do
-		pid=`head -1 ${pidFile}`
-		killStatus=`killRoutineHelper ${pid}`
-		if [ ${killStatus} -eq 1 ]; then
-			successKill=$(( ${successKill} + 1 ))
-			rm ${pidFile}
-		else
-			log ERROR "GYMPB0000E: Unable to kill ${pid}."
-		fi
-	done
-			
-	if [ ${successKill} -eq ${#hadoopPidFiles[@]} ]; then
-		log INFO "GYMPB0000I: ${HADOOP_READABLE} killed."
-	else
-		log ERROR "GYMPB0000E: ${HADOOP_READABLE} not killed."
 	fi
 }
 
@@ -299,15 +266,14 @@ statusRoutine() {
 		"${HADOOP_APP_NAME}") 
 			printHadoopStatus		
 		;;
-		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}") 
-			printNpiStatus
+		"${NPI_APP_NAME}") 
+			printNpiStatus		
 		;;
-		"${NPI_APP_NAME}") ;;
 		"all")
 			printZookeeperStatus; printKafkaStatus; printHadoopStatus; printNpiStatus
 		;;
 		*)
-			log INFO "GYMPB0000I: Application name is missing."; npidUsage; exit 0 # explicitly, since no error
+			log INFO "GYMPB0000I: Application name is missing."; npidUsage;
 		;;
 	esac
 }

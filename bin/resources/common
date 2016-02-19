@@ -4,6 +4,18 @@
 ## 1. Common functions used by the script
 ## ==================================================
 
+log() {
+  severity=$1
+  shift
+  timestamp=`date "+%Y-%m-%d %H:%M:%S.%N"|cut -b1-23`
+  echo "[${severity}] [${timestamp}] [npid] $@" | tee -a ${CONSOLE_LOG}
+}
+
+showVersion() {
+  log INFO "GYMPB0102I: Application: ${PROG_NAME2} Version: ${PROG_VERSION}"
+  exit 0
+}
+
 ##
 ## E.g.
 ## npid start zookeeper
@@ -12,6 +24,7 @@
 ## npid start npi
 ##	
 npidUsage() {
+	echo ""
 	echo "Usage: npid {start|stop|restart|kill|status|version|help} {all|<component_name>|<service_name>}"
 	echo "component_name: {npi}"
 	echo "service_name: {zookeeper|kafka|hadoop}"
@@ -26,12 +39,11 @@ npidUsage() {
 
 ##
 ## If 1 then log ERROR then exit with -1
-## E.g. emergencyExit $status "GYM ..."
+## Example: emergencyExit $status "GYM ..."
 ##
 emergencyExit() {
 	if [ ${1} -eq 1 ]; then
-		log ERROR ${2}
-		exit -1
+		log ERROR ${2}; exit -1
 	fi
 }
 
@@ -76,9 +88,8 @@ getPsByName() {
 ## Created PID file based on application name. E.g. kafka.pid
 ##
 writePID() {
-	if [ $# -eq 2 ]
-	then
-		echo $2 > ${VAR_DIR}/${1}.pid # do we use >> instead ???
+	if [ $# -eq 2 ]; then
+		echo $2 > ${VAR_DIR}/${1}.pid
 	else
 		log ERROR "GYMPB0000E: Not enough arguments to write into PID file."
 		exit 1
@@ -105,9 +116,10 @@ getPID() {
 
 ##
 ## Kill(15) pid and it's associated processes
+## Usage: killAssociatively -9 1145
 ##
 killAssociatively() {
-	ps -ef | grep ${1} | grep -v grep | awk '{print $2}' | xargs -i kill -15 {}
+	ps -ef | grep ${2} | grep -v grep | awk '{print $2}' | xargs -i kill ${1} {}
 }
 
 ##
@@ -115,13 +127,6 @@ killAssociatively() {
 ##
 killAssociatively9() {
 	ps -ef | grep ${1} | grep -v grep | awk '{print $2}' | xargs -i kill -9 {}
-}
-
-##
-## Usage: stopApplication {<application_name>} {<application_readable_name>}
-##
-stopApplication() {
-	log INFO "GYMPB0000I: Can we refactor all the stop*() functions ???"
 }
 
 ##

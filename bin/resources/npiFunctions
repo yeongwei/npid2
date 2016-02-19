@@ -4,6 +4,55 @@
 ## 1. Functions related to NPI
 ## ==========================================================
 
+# check ulimit parameters
+check_ulimit_param() {
+  parameter=$1
+  name=$2
+  minvalue=$3
+  currentulimitvalue=`ulimit ${parameter}`
+  if [ ${currentulimitvalue} -lt ${minvalue} ]; then
+     #attempt to set ulimit
+     local sout
+     sout=$(ulimit -S ${parameter} ${minvalue} 2>&1)
+     if [ "$?" != 0 ]; then
+        log WARN "GYMPB0103W: ulimit parameter ${parameter} (${name}) is less than minimum value ${minvalue}! Fix by adding two lines to /etc/security/limits.conf: \"${USER} hard nofile ${minvalue}\" and \"${USER} soft nofile ${minvalue}\" and then log out the ${USER} user and log back in for the changes to take effect."
+        log WARN "GYMPB0104W: Standard error from ulimit command is \"${sout}\""
+     fi
+  fi
+}
+
+# test UDP tuning parameters
+check_sysctl_param() {
+  parameter=$1
+  minvalue=$2
+  currentvalue=`/sbin/sysctl ${parameter} | awk -F'= ' '{print $2}'`
+  if [ ${currentvalue} -lt ${minvalue} ]; then
+    if [ "${ROOT}" = "YES" ]; then
+       sysctl ${parameter}=${minvalue}
+    else
+       log ERROR "GYMPB0105E: sysctl parameter ${parameter}=${currentvalue} is less than required value ${minvalue}! Fix by adding \"${parameter}=${minvalue}\" to /etc/sysctl.conf and running sysctl -p as root. Alternatively, run ${PROG_NAME} as root."
+       ERRORS=$(($ERRORS + 1))
+    fi
+  fi
+}
+
+check_parameters() {
+  ERRORS=0
+  # check if root
+  if [ "${USER}" = "root" ]; then ROOT=YES; fi
+
+  if [ "${IGNORESYSCHECK}" != "Y" ]; then
+    check_ulimit_param "-n" "open files" 8096
+    check_sysctl_param net.core.rmem_default 33554432
+    check_sysctl_param net.core.rmem_max 33554432
+    check_sysctl_param net.core.netdev_max_backlog 10000
+    if [ "${ERRORS}" != "0" ]; then
+      log ERROR "GYMPB0106E: Another kernel parameter error is fatal. Exiting. Check ${CONSOLE_LOG} for GYMPB0105E errors."
+      exit 1
+    fi
+  fi
+}
+
 ##
 ## Usage: getPortResolution <default_port> <component_name> 
 ##
@@ -59,8 +108,7 @@ startNpi() {
 			emergencyExit "1" "GYMPB0000E: Please provide a valid ${NPI_APP_NAME} component name."
 		;;
 	esac
-	COMPONENT=${1}
-
+	
 	WEB_PORT=`getPortResolution 8081 ${COMPONENT}`
 	log DEBUG "GYMPB0000D: Http Port is ${WEB_PORT}."
 
@@ -73,8 +121,7 @@ startNpi() {
 	AKKA_CLUSTER_PORT=`getPortResolution 2552 ${COMPONENT}`
 	log DEBUG "GYMPB0000D: Akka Cluster Port is ${AKKA_CLUSTER_PORT}."
 
-	# This needs to be removed eventually
-	COMPONENT=`echo ${COMPONENT} | sed s/npi\-//`	
+	COMPONENT=${1}
 	if [ ${COMPONENT} == "${NPI_APP_NAME}" ]; then
 		COMPONENT=""
 	fi
@@ -180,27 +227,22 @@ getNpiStatus() {
 	if [ ${#npiPidFiles[@]} -eq ${numberOfComponents} ]; then
 		for pidFile in "${npiPidFiles[@]}"; do
 			componentName=`echo $pidFile | cut -d. -f1`
-			pidStatus=`isValidPid ${componentName}`
+			pidStatus=`isPidValid ${componentName}`
 			if [ ${pidStatus} -eq 1 ]; then
 				numberOfStartedComponents=$(( ${numberOfStartedComponents} +  1 ))
 			fi
 		done
 
 		if [ ${numberOfStartedComponents} -eq ${numberOfComponents} ]; then
-			# log INFO "GYMPB0000I: ${NPI_READABLE} started."
 			echo 1
 		elif [ ${numberOfStartedComponents} -eq 0 ]; then
-			# log INFO "GYMPB0000I: ${NPI_READABLE} stopped."
 			echo 0
 		else
-			# log INFO "GYMPB0000I: ${NPI_READABLE} partially started."
 			echo 2
 		fi
 	elif [ ${#npiPidFiles[@]} -eq 0 ]; then
-		# log INFO "GYMPB0000I: ${NPI_READABLE} stopped."
 		echo 0
 	else
-		# log INFO "GYMPB0000I: ${NPI_READABLE} partially started."
 		echo 2
 	fi
 }

@@ -49,7 +49,7 @@ NPI_ANALYTICS_APP_NAME="analytics"
 NPI_COLLECTOR_APP_NAME="collector"
 NPI_UI_APP_NAME="ui"
 
-# Readable names (human readable)
+# Readable name
 ZOOKEEPER_READABLE="Zookeeper"
 KAFKA_READABLE="Kafka"
 HADOOP_READABLE="Hadoop"
@@ -58,12 +58,6 @@ NPI_STORAGE_READABLE="Storage"
 NPI_ANALYTICS_READABLE="Analytics"
 NPI_COLLECTOR_READABLE="Collector"
 NPI_UI_READABLE="UI"
-
-# Reflects folder names
-ZOOKEEPER="zk"
-KAFKA="kafka"
-HADOOP="spark_hadoop"
-NPI="npi"
 
 TRY_COUNT=10
 SLEEP_TIME=5
@@ -88,6 +82,14 @@ KAFKA_LOG=${LOG_DIR}/${KAFKA_APP_NAME}.log
 NPI_LOG=${LOG_DIR}/${NPI_APP_NAME}.log
 ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER_APP_NAME}.log
 
+source ${RESOURCES_DIR}/common
+source ${RESOURCES_DIR}/dependencies
+source ${RESOURCES_DIR}/zookeeperFunctions
+source ${RESOURCES_DIR}/kafkaFunctions
+source ${RESOURCES_DIR}/hadoopFunctions
+source ${RESOURCES_DIR}/npiFunctions
+source ${RESOURCES_DIR}/command
+
 if [ ! -d "${LOG_DIR}" ]; then
   mkdir -p ${LOG_DIR}
   if [ "$?" != 0 ]; then
@@ -104,75 +106,6 @@ if [ ! -d "${VAR_DIR}" ]; then
   fi
 fi
 
-log() {
-  severity=$1
-  shift
-  timestamp=`date "+%Y-%m-%d %H:%M:%S.%N"|cut -b1-23`
-  echo "[${severity}] [${timestamp}] [npid] $@" | tee -a ${CONSOLE_LOG}
-}
-
-showVersion() {
-  log INFO "GYMPB0102I: Application: ${PROG_NAME2} Version: ${PROG_VERSION}"
-  exit 0
-}
-
-# check ulimit parameters
-check_ulimit_param() {
-  parameter=$1
-  name=$2
-  minvalue=$3
-  currentulimitvalue=`ulimit ${parameter}`
-  if [ ${currentulimitvalue} -lt ${minvalue} ]; then
-     #attempt to set ulimit
-     local sout
-     sout=$(ulimit -S ${parameter} ${minvalue} 2>&1)
-     if [ "$?" != 0 ]; then
-        log WARN "GYMPB0103W: ulimit parameter ${parameter} (${name}) is less than minimum value ${minvalue}! Fix by adding two lines to /etc/security/limits.conf: \"${USER} hard nofile ${minvalue}\" and \"${USER} soft nofile ${minvalue}\" and then log out the ${USER} user and log back in for the changes to take effect."
-        log WARN "GYMPB0104W: Standard error from ulimit command is \"${sout}\""
-     fi
-  fi
-}
-
-# test UDP tuning parameters
-check_sysctl_param() {
-  parameter=$1
-  minvalue=$2
-  currentvalue=`/sbin/sysctl ${parameter} | awk -F'= ' '{print $2}'`
-  if [ ${currentvalue} -lt ${minvalue} ]; then
-    if [ "${ROOT}" = "YES" ]; then
-       sysctl ${parameter}=${minvalue}
-    else
-       log ERROR "GYMPB0105E: sysctl parameter ${parameter}=${currentvalue} is less than required value ${minvalue}! Fix by adding \"${parameter}=${minvalue}\" to /etc/sysctl.conf and running sysctl -p as root. Alternatively, run ${PROG_NAME} as root."
-       ERRORS=$(($ERRORS + 1))
-    fi
-  fi
-}
-
-check_parameters() {
-  ERRORS=0
-  # check if root
-  if [ "${USER}" = "root" ]; then ROOT=YES; fi
-
-  if [ "${IGNORESYSCHECK}" != "Y" ]; then
-    check_ulimit_param "-n" "open files" 8096
-    check_sysctl_param net.core.rmem_default 33554432
-    check_sysctl_param net.core.rmem_max 33554432
-    check_sysctl_param net.core.netdev_max_backlog 10000
-    if [ "${ERRORS}" != "0" ]; then
-      log ERROR "GYMPB0106E: Another kernel parameter error is fatal. Exiting. Check ${CONSOLE_LOG} for GYMPB0105E errors."
-      exit 1
-    fi
-  fi
-}
-
-source ${RESOURCES_DIR}/common
-source ${RESOURCES_DIR}/dependencies
-source ${RESOURCES_DIR}/zookeeperFunctions
-source ${RESOURCES_DIR}/kafkaFunctions
-source ${RESOURCES_DIR}/hadoopFunctions
-source ${RESOURCES_DIR}/npiFunctions
-source ${RESOURCES_DIR}/command
-
 ## =========================================================
 ## Main ====================================================
 ## =========================================================
@@ -186,9 +119,7 @@ ARG1=$1
 shift
 ARG2=$1
 
-# Manage input arguments from here
-# Might need to be a little forgiving
-if [ -z "${ARG1}" ] || [ -z "${ARG2}" ] ; then
+if [ -z "${ARG1}" ]; then
 	log ERROR "GYMPB0106E: Not enough arguments."
 	npidUsage
 	exit 1
