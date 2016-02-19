@@ -123,55 +123,6 @@ killAssociatively() {
 }
 
 ##
-## Check application status based on application name,
-## since each application has dedicated PID file
-## Example,
-## 	1. checkStatus zookeeper
-##	2. checkStatus npi
-##
-checkStatus() {
-	if [ -f ${VAR_DIR}/${1}.pid ]; then
-		pid=`getPID ${1}`
-		pidStatus=`isPidValid ${1}`
-		if [ ${pidStatus} == "1" ]; then
-			log INFO "GYMPB0116I: Application `getReadableName ${1}` is running on pid ${pid}."
-		else
-			log INFO "GYMPB0117I: Application `getReadableName ${1}` is not started."
-		fi		
-	else
-		log INFO "GYMPB0117I: Application `getReadableName ${1}` is not started."
-	fi		
-}
-
-##
-## Check application status based on the PID files found in var/*
-## 1. Zookeeper: Via ZOOKEEPER_URL
-## 2. Kafka: Via ZOOKEEPER_URL
-## 3. Hadoop: Via Hadoop Resource Manager Web Service
-## 4. NPI: Via PID (Local instance only)
-##
-checkAllStatus() {
-	allAvailPidFile=`ls -1 ${VAR_DIR}`
-	allAvailPidFile2=(${allAvailPidFile[*]}) # Transpose into array
-
-	if [ ${#allAvailPidFile2[@]} -eq 0 ]; then
-		log INFO "GYMPB0117I: No application started."
-	else
-		for pidFile in "${allAvailPidFile2[@]}"; do
-			appName=`echo ${pidFile} | cut -d. -f1`
-			appPid=`head -1 ${VAR_DIR}/${pidFile}` # should use cat or head ???
-
-			pidStatus=`isPidValid ${appName}`
-			if [ ${pidStatus} -eq 1 ]; then
-				log INFO "GYMPB0116I: Application `getReadableName ${appName}` is running on pid ${appPid}."
-			else
-				log INFO "GYMPB0116I: Application `getReadableName ${appName}` is not running."
-			fi
-		done
-	fi 
-}
-
-##
 ## Application names are usually all lowercase
 ## Example: Hadoop -> hadoop
 ##
@@ -249,8 +200,12 @@ getReadableName() {
 ## Best practice to return into variable quoted by ()
 ##
 getNpiPidFiles() {
-	grepPidFilesStr="(${NPI_UI_APP_NAME}|${NPI_COLLECTOR_APP_NAME}|${NPI_ANALYTICS_APP_NAME}|${NPI_STORAGE_APP_NAME}|${NPI_APP_NAME})"
-	npiPidFiles=`ls ${VAR_DIR} | egrep ${grepPidFilesStr}`
-	echo ${npiPidFiles[*]}
+	npiComponents=(${NPI_UI_APP_NAME} ${NPI_COLLECTOR_APP_NAME} ${NPI_ANALYTICS_APP_NAME} ${NPI_STORAGE_APP_NAME})
+	npiPidFiles=""
+	for component in "${npiComponents[@]}"; do
+		npiPidFiles="${npiPidFiles} ${VAR_DIR}/${component}.pid"
+	done
+
+	echo $npiPidFiles
 }
 
