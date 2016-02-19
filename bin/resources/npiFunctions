@@ -176,7 +176,7 @@ startNpi() {
 ## NPI consist of storage, analytics, collector, ui instances
 ##
 stopNpi() {
-	log INFO "GYMPB0000I: Stopping `getReadableName ${1}`"
+	log INFO "GYMPB0000I: Stopping `getReadableName ${1}`."
 
 	npiPidFiles=(`getNpiPidFiles`)
 	errorsFound=0
