@@ -75,7 +75,7 @@ stopZookeeper() {
 	# reference from https://github.com/linkedin/linkedin-zookeeper/blob/master/org.linkedin.zookeeper-server/src/cmdline/resources/bin/zkServer.sh
 	pid=`getPID ${ZOOKEEPER_APP_NAME}`
 	if [ -z "${pid}" ]; then
-		log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} was not running."
+		log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} not started."
 	else
 		log DEBUG "GYMPB0000D: Attempting to kill processes associated with ${pid}"
 		killAssociatively "-15" ${pid}

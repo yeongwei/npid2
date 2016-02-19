@@ -198,7 +198,7 @@ getHadoopPidFiles() {
 ##
 ##
 stopHadoop() {
-	log INFO "GYMPB0000I: About to stop ${HADOOP_READABLE}"
+	log INFO "GYMPB0000I: Stopping ${HADOOP_READABLE}."
 	checkDependentee ${HADOOP_APP_NAME}
 
 	soureceHadoopEnv
@@ -229,7 +229,9 @@ stopHadoop() {
 		else
 			log INFO "GYMPB0000I: ${HADOOP_READABLE} stopped."
 		fi
-	else
+	elif [ ${#hadoopPidFiles[@]} -eq 0 ]; then
+		log INFO "GYMPB0000I: ${HADOOP_READABLE} not started."
+	else		
 		emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} partially started."
 	fi
 }

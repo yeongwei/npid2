@@ -35,7 +35,7 @@ stopKafka() {
 
 	pid=`getPID ${KAFKA_APP_NAME}`
 	if [ -z "$pid" ]; then
-		log INFO "GYMPB0000I: ${KAFKA_READABLE} was not running."
+		log INFO "GYMPB0000I: ${KAFKA_READABLE} not started."
 	else
 		log DEBUG "GYMPB0000I: Attempting to kill processes associated with ${pid}"
 		killAssociatively "-15" ${pid}

@@ -180,39 +180,54 @@ stopNpi() {
 
 	npiPidFiles=(`getNpiPidFiles`)
 	errorsFound=0
+	nothingToStop=0
+	successStop=0
 
 	for pidFile in "${npiPidFiles[@]}"; do
-		pid=`head -1 ${VAR_DIR}/${pidFile}`
-		componentName=`echo ${pidFile} | cut -d. -f1`
-		isPidAlive=`ps -ef | grep ${pid} | grep -v grep`
-		if [ -z "${isPidAlive}" ]; then
-			log WARN "GYMPB0000I: `getReadableName ${componentName}` was stopped."
-		else
-			kill -SIGTERM ${pid}
-			
-			tryCount=${TRY_COUNT}
-			isDown=0
+		if [ -f ${VAR_DIR}/${pidFile} ]; then
+		
+			pid=`head -1 ${VAR_DIR}/${pidFile}`
+			componentName=`echo ${pidFile} | cut -d. -f1`
+			isPidAlive=`ps -ef | grep ${pid} | grep -v grep`
 
-			while [ ${tryCount} -ne 0 ]; do
-				psStatus=`ps -ef | grep ${pid} | grep -v grep`
-				if [ -z "${psStatus}" ]; then
-					isDown=1
-					break
-				fi
-				sleep ${SLEEP_TIME}
-				tryCount=$(( ${tryCount} - 1 ))
-			done
-
-			if [ ${isDown} -eq 1 ]; then
-				removePID ${componentName}
-				log INFO "GYMPB0000I: `getReadableName ${componentName}` stopped."
+			if [ -z "${isPidAlive}" ]; then
+				# log WARN "GYMPB0000I: `getReadableName ${componentName}` was stopped."
+				nothingToStop=$(( ${nothingToStop} + 1 ))
 			else
-				log ERROR "GYMPB0000E: `getReadableName ${componentName}` is not stopping."
+				kill -SIGTERM ${pid}
+			
+				tryCount=${TRY_COUNT}
+				isDown=0
+
+				while [ ${tryCount} -ne 0 ]; do
+					psStatus=`ps -ef | grep ${pid} | grep -v grep`
+					if [ -z "${psStatus}" ]; then
+						isDown=1; break
+					fi
+					sleep ${SLEEP_TIME}
+					tryCount=$(( ${tryCount} - 1 ))
+				done
+
+				if [ ${isDown} -eq 1 ]; then
+					successStop=$(( ${successStop} + 1 ))
+					removePID ${componentName}
+					log INFO "GYMPB0000I: `getReadableName ${componentName}` stopped."
+				else
+					log ERROR "GYMPB0000E: `getReadableName ${componentName}` is not stopping."
+				fi
 			fi
+		else
+			nothingToStop=$(( ${nothingToStop} + 1 ))
 		fi
 	done;
 
-	log INFO "GYMPB0000I: `getReadableName ${1}` stopped."
+	if [ ${successStop} -eq ${#npiPidFiles[@]} ] && [ ${nothingToStop} -eq 0 ]; then
+		log INFO "GYMPB0000I: `getReadableName ${1}` stopped."
+	elif [ ${nothingToStop} -eq ${#npiPidFiles[@]} ]; then
+		log INFO "GYMPB0000I: `getReadableName ${1}` not started."
+	else
+		log INFO "GYMPB0000I: `getReadableName ${1}` not started."
+	fi
 }
 
 ##
