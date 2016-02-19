@@ -187,7 +187,7 @@ getHadoopPidFiles() {
 
 	fileStr=""
 	for pidFile in "${hadoopPidFiles[@]}"; do
-		if [ -f ${pidFile} ]; then
+		if [ -f ${VAR_DIR}/${pidFile} ]; then
 			fileStr="${fileStr} ${pidFile}"
 		fi
 	done
