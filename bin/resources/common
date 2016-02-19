@@ -123,13 +123,6 @@ killAssociatively() {
 }
 
 ##
-## Kill(9) pid and it's associated processes
-##
-killAssociatively9() {
-	ps -ef | grep ${1} | grep -v grep | awk '{print $2}' | xargs -i kill -9 {}
-}
-
-##
 ## Check application status based on application name,
 ## since each application has dedicated PID file
 ## Example,

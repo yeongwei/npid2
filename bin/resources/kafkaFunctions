@@ -38,7 +38,7 @@ stopKafka() {
 		log INFO "GYMPB0000I: ${KAFKA_READABLE} was not running."
 	else
 		log DEBUG "GYMPB0000I: Attempting to kill processes associated with ${pid}"
-		killAssociatively ${pid}
+		killAssociatively "-15" ${pid}
 	
 		tryCount=${TRY_COUNT}
 		isKafkaDown=0
@@ -46,8 +46,7 @@ stopKafka() {
 		while [ $tryCount -ne 0 ]; do
 			psStatus=`getPsByName ${KAFKA_APP_NAME}.${KAFKA_APP_NAME}` # reference from https://github.com/kafka-dev/kafka/blob/master/bin/kafka-server-stop.sh
 			if [ -z "${psStatus}" ]; then
-				isKafkaDown=1
-				break
+				isKafkaDown=1; break
 			fi
 			sleep ${SLEEP_TIME}
 			tryCount=$(( ${tryCount} - 1 ))
