@@ -109,6 +109,11 @@ startNpi() {
 		;;
 	esac
 	
+	COMPONENT=${1}
+	if [ ${COMPONENT} == "${NPI_APP_NAME}" ]; then
+		COMPONENT=""
+	fi
+
 	WEB_PORT=`getPortResolution 8081 ${COMPONENT}`
 	log DEBUG "GYMPB0000D: Http Port is ${WEB_PORT}."
 
@@ -120,11 +125,6 @@ startNpi() {
 
 	AKKA_CLUSTER_PORT=`getPortResolution 2552 ${COMPONENT}`
 	log DEBUG "GYMPB0000D: Akka Cluster Port is ${AKKA_CLUSTER_PORT}."
-
-	COMPONENT=${1}
-	if [ ${COMPONENT} == "${NPI_APP_NAME}" ]; then
-		COMPONENT=""
-	fi
 
 	COMPONENT_OPT=""
 	JVM_OPT="${JVM_OPT} -Dhttp.port=${WEB_PORT} -Dhttps.port=${WEB_SEC_PORT} -Djmx.port=${JMX_PORT} -Dakka.remote.netty.tcp.port=${AKKA_CLUSTER_PORT} -Dakka.remote.netty.tcp.bind-port=${AKKA_CLUSTER_PORT}"
