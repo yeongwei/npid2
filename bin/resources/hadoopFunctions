@@ -2,17 +2,16 @@
 
 ## ==========================================================
 ## 1. Functions related to Hadoop
-## 2. Adapted from bootstraps.sh
 ## ==========================================================
 
 ##
-##
+## Start Hadoop Name Node
 ##
 nn_service() {
 	cmd=$1
 	NAMENODES=$(${HADOOP_PREFIX}/bin/hdfs getconf -namenodes)
 	
-	log DEBUG "GYMPB0000I: ${cmd} namenodes on [${NAMENODES}]"
+	log DEBUG "GYMPB0000D: ${cmd} namenodes on [${NAMENODES}]"
 	
 	"${HADOOP_PREFIX}/sbin/hadoop-daemon.sh" \
 		--config "${HADOOP_CONF_DIR}" \
@@ -22,33 +21,19 @@ nn_service() {
 	SECONDARY_NAMENODES=$(${HADOOP_PREFIX}/bin/hdfs getconf -secondarynamenodes 2>/dev/null)
 	
 	if [ -n "${SECONDARY_NAMENODES}" ]; then
-		log DEBUG "GYMPB0000I: ${cmd} secondary namenodes [${SECONDARY_NAMENODES}]"
+		log DEBUG "GYMPB0000D: ${cmd} secondary namenodes [${SECONDARY_NAMENODES}]"
 	
 	  	"${HADOOP_PREFIX}/sbin/hadoop-daemon.sh" \
 			--config "${HADOOP_CONF_DIR}" \
 			--hostnames "${SECONDARY_NAMENODES}" \
 			--script "${HADOOP_PREFIX}/bin/hdfs" $cmd secondarynamenode
-	  
-		# if [ ${WAIT_PID} -eq 0 ]; then
-		if [ -z "`getPID ${HADOOP_APP_NAME}`" ]; then
-	  		# WAIT_PID=$(cat /tmp/hadoop-*-secondarynamenode.pid |head -1)
-			# writePID ${HADOOP_APP_NAME} "`cat /tmp/hadoop-*-secondarynamenode.pid | head -1`"
-			WAIT_PID=0
-	  	fi
 	fi
-    
-    	# if [ ${WAIT_PID} -eq 0 ];then
-	if [ -z "`getPID ${HADOOP_APP_NAME}`" ]; then 
-		# WAIT_PID=$(cat /tmp/hadoop-*-namenode.pid |head -1)
-		# writePID ${HADOOP_APP_NAME}  "`cat /tmp/hadoop-*-namenode.pid | head -1`"
-		WAIT_PID=0
-    	fi
     
     	"${HADOOP_PREFIX}"/sbin/yarn-daemon.sh --config ${HADOOP_CONF_DIR} ${cmd} resourcemanager	
 }
 
 ##
-##
+## Start Hadoop Data Node
 ##
 dt_service() {
 	cmd=${1}
@@ -60,18 +45,11 @@ dt_service() {
 
 	log DEBUG "GYMPB0000D: ${cmd} YARN nodemanager"
 
-	"${HADOOP_PREFIX}"/sbin/yarn-daemon.sh --config ${HADOOP_CONF_DIR} ${cmd} nodemanager	
-
-	# if [ ${WAIT_PID} -eq 0 ];then
-	if [ -z "`getPID ${HADOOP_APP_NAME}`" ]; then
-		# WAIT_PID=$(cat /tmp/hadoop-*-datanode.pid |head -1)
-		# writePID ${HADOOP_APP_NAME} "`cat /tmp/hadoop-*-datanode.pid | head -1`"
-		WAIT_PID=0
-	fi
+	"${HADOOP_PREFIX}"/sbin/yarn-daemon.sh --config ${HADOOP_CONF_DIR} ${cmd} nodemanager
 }
 
 ##
-##
+## Facilitate files for Hadoop
 ##
 copy_spark_jar_and_conf() {
 	log DEBUG "GYMPB0000D: Waiting for recovering from safemode"
@@ -86,23 +64,20 @@ copy_spark_jar_and_conf() {
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/yarn-site.xml /work/hadoop-conf/yarn-site.xml
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/spark-defaults.conf /work/hadoop-conf/spark-defaults.conf
 
-	log DEBUG "Creating /work/spark-lib folder"
+	log DEBUG "GYMPB0000D: Creating /work/spark-lib folder"
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -mkdir -p /work/spark-lib
 
-	log DEBUG "Copying spark assembly jar to hdfs"
+	log DEBUG "GYMPB0000D: Copying spark assembly jar to hdfs"
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/spark/lib/spark-assembly-*.jar /work/spark-lib/spark-assembly-hadoop.jar
 }
 
 ##
-## Comment:
-##	1. Wrapper for calling initHadoopNameNode.sh
-## Pending:
-##	1. Need to add ${USER_CONFIG} into npi_env.sh
+##
 ## 
 initHadoopNameNode() {
 	if [ "${USER_CONFIG}" != "true" ]; then
 		if [ ! -z ${NAMENODE} ] && [ "${NAMENODE}" == "true" ]; then
-			export NAMENODE_HOST=${NAMENODE_HOST:-"hdfs://$(hostname):9000/"} # should this come from npi_env.sh ???
+			export NAMENODE_HOST=${NAMENODE_HOST:-"hdfs://$(hostname):9000/"}
 	  		(cd ${NPI_HOME} && ./bin/initHadoopNamenode.sh ${NAMENODE_HOST})
 		elif [ ! -z $NAMENODE_HOST ]; then
 	  		(cd ${NPI_HOME} && ./bin/initHadoopNamenode.sh ${NAMENODE_HOST})	
@@ -117,7 +92,16 @@ isHadoopStarted() {
 	hadoopHost=`echo ${HADOOP_NAMENODE_URL} | sed 's/\/\///' | cut -d: -f2`
 	hadoopRmUrl="http://${hadoopHost}:${HADOOP_RM_PORT}/ws/v1/cluster/info"
 
-	status=`wget -qO - ${hadoopRmUrl} | grep '"state":"STARTED"'`
+	status=""
+	gerpStr="\"state\":\"STARTED\""
+	if [ ! -z `which curl` ]; then
+		status=`curl -s ${hadoopRmUrl} | grep ${gerpStr}`
+	elif [ ! -z `which wget` ]; then
+		status=`wget -qO - ${hadoopRmUrl} | grep ${gerpStr}`
+	else 
+		emergencyExit "1" "GYMPB0000E: Either wget or curl must be installed."
+	fi
+
 	if [ -z "${status}" ]; then
 		echo 0
 	else
@@ -135,8 +119,7 @@ checkHadoop() {
 	while [ ${tryCount} -ne 0 ]; do
 		status=`isHadoopStarted`
 		if [ ${status} -eq 1 ]; then
-			isHadoopUp=1
-			break
+			isHadoopUp=1; break
 		fi
 		sleep ${SLEEP_TIME}
 		tryCount=$(( ${tryCount} - 1 ))
@@ -146,48 +129,6 @@ checkHadoop() {
 		emergencyExit "1"  "GYMPB0000E: Hadoop is not starting."
 	else
 		log INFO "GYMPB0000I: Hadoop started."
-	fi
-}
-
-##
-## This function will soon be deprecated
-##
-checkHadoop2() {
-	isHadoopUp=0
-	tryCount=${TRY_COUNT}
-
-	cmd="${HADOOP_PREFIX}/bin/hdfs dfsadmin -report"
-	
-	while [ ${tryCount} -ne 0 ]; do
-		dfsAdminResult=`${cmd}`
-		if [ ! -z "${dfsAdminResult}" ]; then
-			isHadoopUp=1
-			break			
-		fi
-		sleep ${SLEEP_TIME}
-		tryCount=$(( ${tryCount} - 1 ))
-	done
-
-	if [ ${isHadoopUp} -eq 0 ]; then
-		emergencyExit "1"  "GYMPB0000E: Hadoop is not starting."
-	fi
-	
-	isHadoopUp=0
-	tryCount=${TRY_COUNT}
-	cmd="${HADOOP_PREFIX}/bin/hdfs dfs -ls ${HADOOP_NAMENODE_URL}"
-
-	while [ ${tryCount} -ne 0 ]; do
-		dfsResult=`${cmd} | grep "work"`
-		if [ ! -z "${dfsResult}" ]; then
-			isHadoopUp=1
-			break			
-		fi
-		sleep ${SLEEP_TIME}
-		tryCount=$(( ${tryCount} - 1 ))
-	done
-
-	if [ ${isHadoopUp} -eq 0 ]; then
-		emergencyExit "1" "GYMPB0000E: Hadoop is not starting."
 	fi
 }
 
@@ -232,46 +173,6 @@ startHadoop() {
 }
 
 ##
-##
-##
-stopHadoop() {
-	log INFO "GYMPB0000I: About to stop ${HADOOP_READABLE}"
-	checkDependentee ${HADOOP_APP_NAME}
-
-	soureceHadoopEnv
-
-	# pid=`getPID ${HADOOP_APP_NAME}`
-	# if [ -z "$pid" ]; then
-	#	log INFO "GYMPB0000I: ${HADOOP_READABLE} was not running."
-	# else
-		dt_service stop
-		if [ ! -z "${NAMENODE}" ]; then
-			nn_service stop
-		fi
-
-	#	tryCount=${TRY_COUNT}
-	#	isHadoopDown=0
-
-	#	while [ $tryCount -ne 0 ]; do
-	#		psStatus=`getPsByName ${HADOOP_READABLE}`
-	#		if [ -z "${psStatus}" ]; then
-	#			isHadoopDown=1
-	#			break
-	#		fi
-	#		sleep ${SLEEP_TIME}
-	#		tryCount=$(( ${tryCount} - 1 ))
-	#	done
-		
-	#	if [ ${isHadoopDown} -eq 0 ]; then
-	#		emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} is not stopping."
-	#	else
-			log INFO "GYMPB0000I: ${HADOOP_READABLE} stopped."
-	#		removePID ${HADOOP_APP_NAME}
-	#	fi
-	# fi
-}
-
-##
 ## Get all PID files related to Hadoop
 ##
 getHadoopPidFiles() {
@@ -291,4 +192,44 @@ getHadoopPidFiles() {
 	done
 
 	echo ${fileStr};
+}
+
+##
+##
+##
+stopHadoop() {
+	log INFO "GYMPB0000I: About to stop ${HADOOP_READABLE}"
+	checkDependentee ${HADOOP_APP_NAME}
+
+	soureceHadoopEnv
+	
+	numberOfValidPidFiles=5
+	hadoopPidFiles=(`getHadoopPidFiles`)
+
+	if [ ${#hadoopPidFiles[@]} -eq 5 ]; then
+		dt_service stop
+		if [ ! -z "${NAMENODE}" ]; then
+			nn_service stop
+		fi
+		
+		tryCount=${TRY_COUNT}
+		isHadoopDown=0
+
+		while [ $tryCount -ne 0 ]; do
+			psStatus=`getPsByName ${HADOOP_APP_NAME}`
+			if [ -z "${psStatus}" ]; then
+				isHadoopDown=1; break
+			fi
+			sleep ${SLEEP_TIME}
+			tryCount=$(( ${tryCount} - 1 ))
+		done
+
+		if [ ${isHadoopDown} -eq 0 ]; then
+			emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} is not stopping."
+		else
+			log INFO "GYMPB0000I: ${HADOOP_READABLE} stopped."
+		fi
+	else
+		emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} partially started."
+	fi
 }
