@@ -216,7 +216,7 @@ stopHadoop() {
 		isHadoopDown=0
 
 		while [ $tryCount -ne 0 ]; do
-			psStatus=`getPsByName ${HADOOP_APP_NAME}`
+			psStatus=`ps -ef | grep ${HADOOP_APP_NAME} | grep -v grep | grep -v 'zookeeper.properties' | grep -v 'kafka-server.properties'`
 			if [ -z "${psStatus}" ]; then
 				isHadoopDown=1; break
 			fi

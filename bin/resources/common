@@ -203,7 +203,7 @@ getNpiPidFiles() {
 	npiComponents=(${NPI_UI_APP_NAME} ${NPI_COLLECTOR_APP_NAME} ${NPI_ANALYTICS_APP_NAME} ${NPI_STORAGE_APP_NAME})
 	npiPidFiles=""
 	for component in "${npiComponents[@]}"; do
-		npiPidFiles="${npiPidFiles} ${VAR_DIR}/${component}.pid"
+		npiPidFiles="${npiPidFiles} ${component}.pid"
 	done
 
 	echo $npiPidFiles
