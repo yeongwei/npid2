@@ -99,17 +99,10 @@ startNpi() {
 		emergencyExit "1" "GYMPB0000E: Please provide a ${NPI_APP_NAME} component name."
 	fi 	
 	
-	### Refer to common componentList
-	case "${1}" in
-		"${NPI_STORAGE_APP_NAME}") ;;
-		"${NPI_ANALYTICS_APP_NAME}") ;;
-		"${NPI_COLLECTOR_APP_NAME}") ;;
-		"${NPI_UI_APP_NAME}") ;;
-		"${NPI_APP_NAME}") ;;
-		*)
-			emergencyExit "1" "GYMPB0000E: Please provide a valid ${NPI_APP_NAME} component name."
-		;;
-	esac
+	componentStatus=`isNpiComponent ${1}`
+	if [ ${componentStatus} -ne 1 ]; then
+		emergencyExit "1" "GYMPB0000E: Please provide a valid ${NPI_APP_NAME} component name."
+	fi
 	
 	COMPONENT=${1}
 	if [ ${COMPONENT} == "${NPI_APP_NAME}" ]; then

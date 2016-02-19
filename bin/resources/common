@@ -219,7 +219,7 @@ getComponentList() {
 		done
 	fi
 
-	echo componentListStr
+	echo ${componentListStr}
 }
 
 ##
