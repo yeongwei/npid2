@@ -16,9 +16,9 @@ isKafkaStarted() {
 ##
 startKafka() {
 	status=`isPidValid "${KAFKA_APP_NAME}"`
-	emergencyExit ${status} "GYMPB0000E: ${KAFKA_READABLE} is already running."
+	emergencyExit ${status} "GYMPB0124E: ${KAFKA_READABLE} is already running."
 
-	log INFO "GYMPB0000I: Starting ${KAFKA_READABLE}."
+	log INFO "GYMPB0112I: Starting ${KAFKA_READABLE}."
 	checkDependent ${KAFKA_APP_NAME}
 
 	cd ${SERVICES_DIR}/${KAFKA_APP_NAME} && ./bin/kafka-server-start.sh ${SERVICES_DIR}/conf/${KAFKA_APP_NAME}/${KAFKA_APP_NAME}-server.properties >>${KAFKA_LOG} 2>>${KAFKA_LOG} &
@@ -30,14 +30,14 @@ startKafka() {
 ##
 ##
 stopKafka() {
-	log INFO "GYMPB0000I: Stopping ${KAFKA_READABLE}."
+	log INFO "GYMPB0113I: Stopping ${KAFKA_READABLE}."
 	checkDependentee ${KAFKA_APP_NAME}
 
 	pid=`getPID ${KAFKA_APP_NAME}`
 	if [ -z "$pid" ]; then
-		log INFO "GYMPB0000I: ${KAFKA_READABLE} not started."
+		log INFO "GYMPB0108I: ${KAFKA_READABLE} not started."
 	else
-		log DEBUG "GYMPB0000I: Attempting to kill processes associated with ${pid}"
+		log DEBUG "GYMPB0119I: Attempting to kill processes associated with ${pid}"
 		killAssociatively "-15" ${pid}
 	
 		tryCount=${TRY_COUNT}
@@ -53,9 +53,9 @@ stopKafka() {
 		done
 
 		if [ ${isKafkaDown} -eq 0 ]; then
-			emergencyExit "1" "GYMPB0000E: ${KAFKA_READABLE} is not stopping."
+			emergencyExit "1" "GYMPB0114E: ${KAFKA_READABLE} is not stopping."
 		else
-			log INFO "GYMPB0000I: ${KAFKA_READABLE} stopped."
+			log INFO "GYMPB0110I: ${KAFKA_READABLE} stopped."
 			removePID ${KAFKA_APP_NAME}
 		fi
 	fi

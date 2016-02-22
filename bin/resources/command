@@ -5,7 +5,7 @@
 ## 2. User command example; start, stop, restart ...
 ## ==========================================================
 
-defaultLog="GYMPB0000I Application name is missing / incorrect."
+defaultLog="GYMPB0107I Application name is missing / incorrect."
 
 ##
 ## For CMD "start"
@@ -140,7 +140,7 @@ killPids() {
 	done
 	
 	if [ ${#pidFiles[@]} -eq 0 ]; then
-		log INFO "GYMPB0000I: `getReadableName ${appName}` not started."
+		log INFO "GYMPB0108I: `getReadableName ${appName}` not started."
 	else
 		successKill=0
 		nothingToKill=0
@@ -152,7 +152,7 @@ killPids() {
 					successKill=$(( ${successKill} + 1 ))
 					rm ${pidFile}
 				else
-					log ERROR "GYMPB0000E: Unable to kill ${pid}."
+					log ERROR "GYMPB0120E: Unable to kill ${pid}."
 				fi
 			else 
 				nothingToKill=$(( ${nothingToKill} + 1 ))
@@ -160,11 +160,11 @@ killPids() {
 		done
 
 		if [ ${successKill} -eq ${#pidFiles[@]} ] && [ ${nothingToKill} -eq 0 ]; then
-			log INFO "GYMPB0000I: `getReadableName ${appName}` killed."
+			log INFO "GYMPB0121I: `getReadableName ${appName}` killed."
 		elif [ ${nothingToKill} -eq ${#pidFiles[@]} ]; then
-			log INFO "GYMPB0000I: `getReadableName ${appName}` not started."
+			log INFO "GYMPB0108I: `getReadableName ${appName}` not started."
 		else
-			log ERROR "GYMPB0000E: `getReadableName ${appName}` not killed."
+			log ERROR "GYMPB0122E: `getReadableName ${appName}` not killed."
 		fi			
 	fi
 }
@@ -200,36 +200,36 @@ killRoutine() {
 ##
 printZookeeperStatus() {
 	if [ `isZookeeperStarted` -eq 1 ]; then
-		log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} started."
+		log INFO "GYMPB0109I: ${ZOOKEEPER_READABLE} started."
 	else
-		log INFO "GYMPB0000I: ${ZOOKEEPER_READABLE} stopped."
+		log INFO "GYMPB0110I: ${ZOOKEEPER_READABLE} stopped."
 	fi
 }
 
 printKafkaStatus() {
 	if [ `isKafkaStarted` -eq 1 ]; then
-		log INFO "GYMPB0000I: ${KAFKA_READABLE} started."
+		log INFO "GYMPB0109I: ${KAFKA_READABLE} started."
 	else
-		log INFO "GYMPB0000I: ${KAFKA_READABLE} stopped."
+		log INFO "GYMPB0110I: ${KAFKA_READABLE} stopped."
 	fi
 }
 
 printHadoopStatus() {
 	if [ `isHadoopStarted` -eq 1 ]; then
-		log INFO "GYMPB0000I: ${HADOOP_READABLE} started."
+		log INFO "GYMPB0109I: ${HADOOP_READABLE} started."
 	else
-		log INFO "GYMPB0000I: ${HADOOP_READABLE} stopped."
+		log INFO "GYMPB0110I: ${HADOOP_READABLE} stopped."
 	fi
 }
 
 printNpiStatus() {
 	npiStatus=`getNpiStatus`
 	if [ ${npiStatus} -eq 0 ]; then
-		log INFO "GYMPB0000I: ${NPI_READABLE} stopped."
+		log INFO "GYMPB0110I: ${NPI_READABLE} stopped."
 	elif [ ${npiStatus} -eq 1 ]; then
-		log INFO "GYMPB0000I: ${NPI_READABLE} started."
+		log INFO "GYMPB0109I: ${NPI_READABLE} started."
 	elif [ ${npiStatus} -eq 2 ]; then
-		log INFO "GYMPB0000I: ${NPI_READABLE} partially started."
+		log INFO "GYMPB0123I: ${NPI_READABLE} partially started."
 	fi
 }
 

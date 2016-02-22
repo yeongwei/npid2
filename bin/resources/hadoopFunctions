@@ -11,7 +11,7 @@ nn_service() {
 	cmd=$1
 	NAMENODES=$(${HADOOP_PREFIX}/bin/hdfs getconf -namenodes)
 	
-	log DEBUG "GYMPB0000D: ${cmd} namenodes on [${NAMENODES}]"
+	log DEBUG "GYMPB0126D: ${cmd} namenodes on [${NAMENODES}]"
 	
 	"${HADOOP_PREFIX}/sbin/hadoop-daemon.sh" \
 		--config "${HADOOP_CONF_DIR}" \
@@ -21,7 +21,7 @@ nn_service() {
 	SECONDARY_NAMENODES=$(${HADOOP_PREFIX}/bin/hdfs getconf -secondarynamenodes 2>/dev/null)
 	
 	if [ -n "${SECONDARY_NAMENODES}" ]; then
-		log DEBUG "GYMPB0000D: ${cmd} secondary namenodes [${SECONDARY_NAMENODES}]"
+		log DEBUG "GYMPB0127D: ${cmd} secondary namenodes [${SECONDARY_NAMENODES}]"
 	
 	  	"${HADOOP_PREFIX}/sbin/hadoop-daemon.sh" \
 			--config "${HADOOP_CONF_DIR}" \
@@ -37,13 +37,13 @@ nn_service() {
 ##
 dt_service() {
 	cmd=${1}
-	log DEBUG "GYMPB0000D: ${cmd} datanode"
+	log DEBUG "GYMPB0128D: ${cmd} datanode"
 
 	"${HADOOP_PREFIX}/sbin/hadoop-daemon.sh" \
 		--config "${HADOOP_CONF_DIR}" \
 	    	--script "${HADOOP_PREFIX}/bin/hdfs" ${cmd} datanode
 
-	log DEBUG "GYMPB0000D: ${cmd} YARN nodemanager"
+	log DEBUG "GYMPB0129D: ${cmd} YARN nodemanager"
 
 	"${HADOOP_PREFIX}"/sbin/yarn-daemon.sh --config ${HADOOP_CONF_DIR} ${cmd} nodemanager
 }
@@ -52,23 +52,23 @@ dt_service() {
 ## Facilitate files for Hadoop
 ##
 copy_spark_jar_and_conf() {
-	log DEBUG "GYMPB0000D: Waiting for recovering from safemode"
+	log DEBUG "GYMPB0130D: Waiting for recovering from safemode"
 	$NPI_HOME/services/hadoop/bin/hdfs dfsadmin -safemode wait
 
-	log DEBUG "GYMPB0000D: Creating /work/hadoop-conf folder"
+	log DEBUG "GYMPB0131D: Creating /work/hadoop-conf folder"
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -mkdir -p /work/hadoop-conf
 
-	log DEBUG "GYMPB0000D: Copying hadoop config files to hdfs"
+	log DEBUG "GYMPB0132D: Copying hadoop config files to hdfs"
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/core-site.xml /work/hadoop-conf/core-site.xml
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/hdfs-site.xml /work/hadoop-conf/hdfs-site.xml
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/yarn-site.xml /work/hadoop-conf/yarn-site.xml
 	# $NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/hadoop/etc/hadoop/spark-defaults.conf /work/hadoop-conf/spark-defaults.conf
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/conf/spark/spark-defaults.conf /work/hadoop-conf/spark-defaults.conf
 
-	log DEBUG "GYMPB0000D: Creating /work/spark-lib folder"
+	log DEBUG "GYMPB0133D: Creating /work/spark-lib folder"
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -mkdir -p /work/spark-lib
 
-	log DEBUG "GYMPB0000D: Copying spark assembly jar to hdfs"
+	log DEBUG "GYMPB0134D: Copying spark assembly jar to hdfs"
 	$NPI_HOME/services/hadoop/bin/hdfs dfs -copyFromLocal -f $NPI_HOME/services/spark/lib/spark-assembly-*.jar /work/spark-lib/spark-assembly-hadoop.jar
 }
 
@@ -100,7 +100,7 @@ isHadoopStarted() {
 	elif [ ! -z `which wget` ]; then
 		status=`wget -qO - ${hadoopRmUrl} | grep ${gerpStr}`
 	else 
-		emergencyExit "1" "GYMPB0000E: Either wget or curl must be installed."
+		emergencyExit "1" "GYMPB0135E: Either wget or curl must be installed."
 	fi
 
 	if [ -z "${status}" ]; then
@@ -127,9 +127,9 @@ checkHadoop() {
 	done
 
 	if [ ${isHadoopUp} -eq 0 ]; then
-		emergencyExit "1"  "GYMPB0000E: Hadoop is not starting."
+		emergencyExit "1"  "GYMPB0118E: Hadoop is not starting."
 	else
-		log INFO "GYMPB0000I: Hadoop started."
+		log INFO "GYMPB0109I: Hadoop started."
 	fi
 }
 
@@ -148,7 +148,7 @@ soureceHadoopEnv() {
 ##
 ##
 startHadoop() {
-	log INFO "GYMPB0000I: Starting ${HADOOP_READABLE}."
+	log INFO "GYMPB0112I: Starting ${HADOOP_READABLE}."
 	checkDependent ${HADOOP_APP_NAME}
 
 	soureceHadoopEnv
@@ -157,7 +157,7 @@ startHadoop() {
 
 	if [ ! -z ${NAMENODE} ] && [ "${NAMENODE}" == "true" ]; then
 		if [ ! -d ${NPI_HOME}/work/dfs ]; then
-			log INFO "GYMPB0000I: Starting as NAMENODE and no HDFS found, formating new HDFS."
+			log INFO "GYMPB0136I: Starting as NAMENODE and no HDFS found, formating new HDFS."
 			${NPI_HOME}/services/hadoop/bin/hdfs namenode -format
 		fi
 	
@@ -212,7 +212,7 @@ getHadoopPids() {
 ##
 ##
 stopHadoop() {
-	log INFO "GYMPB0000I: Stopping ${HADOOP_READABLE}."
+	log INFO "GYMPB0113I: Stopping ${HADOOP_READABLE}."
 	checkDependentee ${HADOOP_APP_NAME}
 
 	soureceHadoopEnv
@@ -247,13 +247,13 @@ stopHadoop() {
 		done
 
 		if [ ${pidDownCount} -eq ${numberOfValidPidFiles} ]; then
-			log INFO "GYMPB0000I: ${HADOOP_READABLE} stopped."
+			log INFO "GYMPB0110I: ${HADOOP_READABLE} stopped."
 		else
-			log ERROR "GYMPB000E: ${HADOOP_READABLE} not stopping."
+			log ERROR "GYMPB0114E: ${HADOOP_READABLE} not stopping."
 		fi
 	elif [ ${#hadoopPidFiles[@]} -eq 0 ]; then
-		log INFO "GYMPB0000I: ${HADOOP_READABLE} not started."
+		log INFO "GYMPB0108I: ${HADOOP_READABLE} not started."
 	else		
-		emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} partially started."
+		emergencyExit "1" "GYMPB0123E: ${HADOOP_READABLE} partially started."
 	fi
 }

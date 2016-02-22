@@ -24,6 +24,7 @@ dependencies:37:		emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} not started.
 dependencies:53:			emergencyExit "1" "GYMPB0000E: `getReadableName ${componentName}` is started."
 dependencies:73:			emergencyExit "1" "GYMPB0000E: Unable to resolve dependent."
 dependencies:95:			emergencyExit "1" "GYMPB0000E: Unable to resolve dependentee."
+
 hadoopFunctions:14:	log DEBUG "GYMPB0000D: ${cmd} namenodes on [${NAMENODES}]"
 hadoopFunctions:24:		log DEBUG "GYMPB0000D: ${cmd} secondary namenodes [${SECONDARY_NAMENODES}]"
 hadoopFunctions:40:	log DEBUG "GYMPB0000D: ${cmd} datanode"
@@ -43,6 +44,7 @@ hadoopFunctions:250:			log INFO "GYMPB0000I: ${HADOOP_READABLE} stopped."
 hadoopFunctions:252:			log ERROR "GYMPB000E: ${HADOOP_READABLE} not stopping."
 hadoopFunctions:255:		log INFO "GYMPB0000I: ${HADOOP_READABLE} not started."
 hadoopFunctions:257:		emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} partially started."
+
 kafkaFunctions:19:	emergencyExit ${status} "GYMPB0000E: ${KAFKA_READABLE} is already running."
 kafkaFunctions:21:	log INFO "GYMPB0000I: Starting ${KAFKA_READABLE}."
 kafkaFunctions:33:	log INFO "GYMPB0000I: Stopping ${KAFKA_READABLE}."
@@ -50,10 +52,12 @@ kafkaFunctions:38:		log INFO "GYMPB0000I: ${KAFKA_READABLE} not started."
 kafkaFunctions:40:		log DEBUG "GYMPB0000I: Attempting to kill processes associated with ${pid}"
 kafkaFunctions:56:			emergencyExit "1" "GYMPB0000E: ${KAFKA_READABLE} is not stopping."
 kafkaFunctions:58:			log INFO "GYMPB0000I: ${KAFKA_READABLE} stopped."
+
 npiFunctions:18:        log WARN "GYMPB0103W: ulimit parameter ${parameter} (${name}) is less than minimum value ${minvalue}! Fix by adding two lines to /etc/security/limits.conf: \"${USER} hard nofile ${minvalue}\" and \"${USER} soft nofile ${minvalue}\" and then log out the ${USER} user and log back in for the changes to take effect."
 npiFunctions:19:        log WARN "GYMPB0104W: Standard error from ulimit command is \"${sout}\""
 npiFunctions:33:       log ERROR "GYMPB0105E: sysctl parameter ${parameter}=${currentvalue} is less than required value ${minvalue}! Fix by adding \"${parameter}=${minvalue}\" to /etc/sysctl.conf and running sysctl -p as root. Alternatively, run ${PROG_NAME} as root."
 npiFunctions:50:      log ERROR "GYMPB0106E: Another kernel parameter error is fatal. Exiting. Check ${CONSOLE_LOG} for GYMPB0105E errors."
+
 npiFunctions:80:			emergencyExit "1" "GYMPB0000E: Port resolution failed due to invalid NPI component name."
 npiFunctions:91:	emergencyExit ${status} "GYMPB0000E: ${NPI_READABLE} component is already running."	
 npiFunctions:93:	log INFO "GYMPB0000I: Starting `getReadableName ${1}`"
@@ -71,6 +75,7 @@ npiFunctions:203:					log ERROR "GYMPB0000E: `getReadableName ${componentName}` 
 npiFunctions:212:		log INFO "GYMPB0000I: `getReadableName ${1}` stopped."
 npiFunctions:214:		log INFO "GYMPB0000I: `getReadableName ${1}` not started."
 npiFunctions:216:		log INFO "GYMPB0000I: `getReadableName ${1}` not started."
+
 zookeeperFunctions:48:		emergencyExit "1" "GYMPB0000E: ${3} is not starting."
 zookeeperFunctions:50:		log INFO "GYMPB0000I: ${3} started."
 zookeeperFunctions:59:	emergencyExit ${status} "GYMPB0000E: ${ZOOKEEPER_READABLE} is already running."

@@ -6,7 +6,7 @@
 needZookeeper() {
 	status=`isZookeeperStarted`
 	if [ ${status} -ne 1 ]; then
-		emergencyExit "1" "GYMPB0000E: ${ZOOKEEPER_READABLE} not started."
+		emergencyExit "1" "GYMPB0111E: ${ZOOKEEPER_READABLE} not started."
 	fi
 }
 
@@ -16,7 +16,7 @@ needZookeeper() {
 needKafka() {
 	status=`isKafkaStarted`
 	if [ ${status} -ne 1 ]; then
-		emergencyExit "1" "GYMPB0000E: ${KAFKA_READABLE} not started."
+		emergencyExit "1" "GYMPB0111E: ${KAFKA_READABLE} not started."
 	fi
 }
 
@@ -24,7 +24,7 @@ needKafka() {
 isKafkaRunning() {
 	status=`isKafkaStarted`
 	if [ ${status} -eq 1 ]; then
-		emergencyExit "1" "GYMPB0000E: ${KAFKA_READABLE} is started."
+		emergencyExit "1" "GYMPB0111E: ${KAFKA_READABLE} is started."
 	fi
 }
 
@@ -34,7 +34,7 @@ isKafkaRunning() {
 needHadoop() {
 	status=`isHadoopStarted`
 	if [ ${status} -ne 1 ]; then
-		emergencyExit "1" "GYMPB0000E: ${HADOOP_READABLE} not started."
+		emergencyExit "1" "GYMPB0111E: ${HADOOP_READABLE} not started."
 	fi
 }
 
@@ -50,7 +50,7 @@ isAnyNpiRunning() {
 		componentName=`echo ${pidFile} | cut -d. -f1`
 		pidStatus=`isPidValid ${componentName}`
 		if [ ${pidStatus} -eq 1 ]; then
-			emergencyExit "1" "GYMPB0000E: `getReadableName ${componentName}` is started."
+			emergencyExit "1" "GYMPB00115E: `getReadableName ${componentName}` is started."
 			break
 		fi
 	done
@@ -70,7 +70,7 @@ checkDependent() {
 			needZookeeper; needKafka; needHadoop;
 		;;
 		*)
-			emergencyExit "1" "GYMPB0000E: Unable to resolve dependent."
+			emergencyExit "1" "GYMPB0116E: Unable to resolve dependent."
 		;;
 	esac
 	
@@ -92,7 +92,7 @@ checkDependentee() {
 		;;
 		"${NPI_STORAGE_APP_NAME}" | "${NPI_ANALYTICS_APP_NAME}" | "${NPI_COLLECTOR_APP_NAME}" | "${NPI_UI_APP_NAME}" | "${NPI_APP_NAME}") ;;
 		*)
-			emergencyExit "1" "GYMPB0000E: Unable to resolve dependentee."
+			emergencyExit "1" "GYMPB0117E: Unable to resolve dependentee."
 		;;
 	esac
 	

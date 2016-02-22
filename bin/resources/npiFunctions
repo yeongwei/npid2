@@ -88,20 +88,20 @@ getPortResolution() {
 startNpi() {
 	status=`isPidValid ${1}`
 	### This is not relevant, let code continue to go through
-	emergencyExit ${status} "GYMPB0000E: ${NPI_READABLE} component is already running."	
+	emergencyExit ${status} "GYMPB0124E: ${NPI_READABLE} component is already running."	
 
-	log INFO "GYMPB0000I: Starting `getReadableName ${1}`"
+	log INFO "GYMPB0112I: Starting `getReadableName ${1}`"
 	checkDependent ${NPI_APP_NAME}	
 
 	check_parameters
 
 	if [ -z "${1}" ]; then	
-		emergencyExit "1" "GYMPB0000E: Please provide a ${NPI_APP_NAME} component name."
+		emergencyExit "1" "GYMPB0137E: Please provide a ${NPI_APP_NAME} component name."
 	fi 	
 	
 	componentStatus=`isNpiComponent ${1}`
 	if [ ${componentStatus} -ne 1 ]; then
-		emergencyExit "1" "GYMPB0000E: Please provide a valid ${NPI_APP_NAME} component name."
+		emergencyExit "1" "GYMPB0138E: Please provide a valid ${NPI_APP_NAME} component name."
 	fi
 	
 	COMPONENT=${1}
@@ -110,16 +110,16 @@ startNpi() {
 	fi
 
 	WEB_PORT=`getPortResolution 8081 ${COMPONENT}`
-	log DEBUG "GYMPB0000D: Http Port is ${WEB_PORT}."
+	log DEBUG "GYMPB0139D: Http Port is ${WEB_PORT}."
 
 	WEB_SEC_PORT=`getPortResolution 9443 ${COMPONENT}`
-	log DEBUG "GYMPB0000D: Https Port is ${WEB_SEC_PORT}."
+	log DEBUG "GYMPB0139D: Https Port is ${WEB_SEC_PORT}."
 
 	JMX_PORT=`getPortResolution 9010 ${COMPONENT}`
-	log DEBUG "GYMPB0000D: Jmx Port is ${JMX_PORT}."
+	log DEBUG "GYMPB0139D: Jmx Port is ${JMX_PORT}."
 
 	AKKA_CLUSTER_PORT=`getPortResolution 2552 ${COMPONENT}`
-	log DEBUG "GYMPB0000D: Akka Cluster Port is ${AKKA_CLUSTER_PORT}."
+	log DEBUG "GYMPB0139D: Akka Cluster Port is ${AKKA_CLUSTER_PORT}."
 
 	COMPONENT_OPT=""
 	JVM_OPT="${JVM_OPT} -Dhttp.port=${WEB_PORT} -Dhttps.port=${WEB_SEC_PORT} -Djmx.port=${JMX_PORT} -Dakka.remote.netty.tcp.port=${AKKA_CLUSTER_PORT} -Dakka.remote.netty.tcp.bind-port=${AKKA_CLUSTER_PORT}"
@@ -146,7 +146,7 @@ startNpi() {
 	${NPI_HOME}/bin/npi ${COMPONENT_OPT} > /dev/null 2>> ${NPI_LOG} &
 	writePID ${1} ${!}
 
-	log INFO "GYMPB0000I: `getReadableName ${1}` started."
+	log INFO "GYMPB0109I: `getReadableName ${1}` started."
 }
 
 ##
@@ -163,7 +163,7 @@ startNpiComponents() {
 ## NPI consist of storage, analytics, collector, ui instances
 ##
 stopNpi() {
-	log INFO "GYMPB0000I: Stopping `getReadableName ${1}`."
+	log INFO "GYMPB0113I: Stopping `getReadableName ${1}`."
 
 	npiPidFiles=(`getNpiPidFiles`)
 	errorsFound=0
@@ -178,7 +178,6 @@ stopNpi() {
 			isPidAlive=`ps -ef | grep ${pid} | grep -v grep`
 
 			if [ -z "${isPidAlive}" ]; then
-				# log WARN "GYMPB0000I: `getReadableName ${componentName}` was stopped."
 				nothingToStop=$(( ${nothingToStop} + 1 ))
 			else
 				kill -SIGTERM ${pid}
@@ -198,9 +197,9 @@ stopNpi() {
 				if [ ${isDown} -eq 1 ]; then
 					successStop=$(( ${successStop} + 1 ))
 					removePID ${componentName}
-					log INFO "GYMPB0000I: `getReadableName ${componentName}` stopped."
+					log INFO "GYMPB0110I: `getReadableName ${componentName}` stopped."
 				else
-					log ERROR "GYMPB0000E: `getReadableName ${componentName}` is not stopping."
+					log ERROR "GYMPB0114E: `getReadableName ${componentName}` is not stopping."
 				fi
 			fi
 		else
@@ -209,11 +208,11 @@ stopNpi() {
 	done;
 
 	if [ ${successStop} -eq ${#npiPidFiles[@]} ] && [ ${nothingToStop} -eq 0 ]; then
-		log INFO "GYMPB0000I: `getReadableName ${1}` stopped."
+		log INFO "GYMPB0110I: `getReadableName ${1}` stopped."
 	elif [ ${nothingToStop} -eq ${#npiPidFiles[@]} ]; then
-		log INFO "GYMPB0000I: `getReadableName ${1}` not started."
+		log INFO "GYMPB0108I: `getReadableName ${1}` not started."
 	else
-		log INFO "GYMPB0000I: `getReadableName ${1}` not started."
+		log INFO "GYMPB0108I: `getReadableName ${1}` not started."
 	fi
 }
 

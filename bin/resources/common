@@ -99,7 +99,7 @@ writePID() {
 	if [ $# -eq 2 ]; then
 		echo $2 > ${VAR_DIR}/${1}.pid
 	else
-		log ERROR "GYMPB0000E: Not enough arguments to write into PID file."
+		log ERROR "GYMPB0125E: Not enough arguments to write into PID file."
 		exit 1
 	fi
 }
