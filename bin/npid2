@@ -65,7 +65,7 @@ SH_SHELL=`which sh`
 BASH_SHELL=`which bash`
 
 SERVICES_DIR=${PROG_HOME}/services
-RESOURCES_DIR=${BIN_DIR}/resources
+SCRIPTS_DIR=${BIN_DIR}/scripts
 LOG_DIR=${PROG_HOME}/log
 VAR_DIR=${PROG_HOME}/var
 
@@ -81,13 +81,13 @@ KAFKA_LOG=${LOG_DIR}/${KAFKA_APP_NAME}.log
 NPI_LOG=${LOG_DIR}/${NPI_APP_NAME}.log
 ZOOKEEPER_LOG=${LOG_DIR}/${ZOOKEEPER_APP_NAME}.log
 
-source ${RESOURCES_DIR}/common
-source ${RESOURCES_DIR}/dependencies
-source ${RESOURCES_DIR}/zookeeperFunctions
-source ${RESOURCES_DIR}/kafkaFunctions
-source ${RESOURCES_DIR}/hadoopFunctions
-source ${RESOURCES_DIR}/npiFunctions
-source ${RESOURCES_DIR}/command
+source ${SCRIPTS_DIR}/common
+source ${SCRIPTS_DIR}/dependencies
+source ${SCRIPTS_DIR}/zookeeperFunctions
+source ${SCRIPTS_DIR}/kafkaFunctions
+source ${SCRIPTS_DIR}/hadoopFunctions
+source ${SCRIPTS_DIR}/npiFunctions
+source ${SCRIPTS_DIR}/command
 
 if [ ! -d "${LOG_DIR}" ]; then
   mkdir -p ${LOG_DIR}
