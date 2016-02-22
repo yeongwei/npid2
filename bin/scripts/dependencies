@@ -50,7 +50,7 @@ isAnyNpiRunning() {
 		componentName=`echo ${pidFile} | cut -d. -f1`
 		pidStatus=`isPidValid ${componentName}`
 		if [ ${pidStatus} -eq 1 ]; then
-			emergencyExit "1" "GYMPB00115E: `getReadableName ${componentName}` is started."
+			emergencyExit "1" "GYMPB00115E: ${NPI_READABLE} is started."
 			break
 		fi
 	done
