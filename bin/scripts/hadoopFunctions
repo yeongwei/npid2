@@ -1,9 +1,5 @@
 #!/bin/bash
 
-## ==========================================================
-## 1. Functions related to Hadoop
-## ==========================================================
-
 ##
 ## Start Hadoop Name Node
 ##
@@ -133,7 +129,7 @@ checkHadoop() {
 }
 
 ##
-##
+## Hadoop and Spark environment files
 ##
 soureceHadoopEnv() {
 	source ${NPI_HOME}/services/hadoop/etc/hadoop/hadoop-env.sh
@@ -144,7 +140,7 @@ soureceHadoopEnv() {
 }
 
 ##
-##
+## Entry function to start Hadoop
 ##
 startHadoop() {
 	log INFO "GYMPB0112I: Starting ${HADOOP_READABLE}."
@@ -196,7 +192,7 @@ getHadoopPidFiles() {
 }
 
 ##
-##
+## Retrieve the list of PIDs related to Hadoop services
 ##
 getHadoopPids() {
 	hadoopPidFiles=(`getHadoopPidFiles`)
@@ -209,7 +205,7 @@ getHadoopPids() {
 }
 
 ##
-##
+## Entry function to stop Hadoop
 ##
 stopHadoop() {
 	log INFO "GYMPB0113I: Stopping ${HADOOP_READABLE}."

@@ -1,9 +1,5 @@
 #!/bin/bash
 
-## ==========================================================
-## 1. Functions related to Zookeeper
-## ==========================================================
-
 ##
 ## Check via Zookeeper service
 ## If 1 is up else 0

@@ -1,10 +1,5 @@
 #!/bin/bash
 
-## ==========================================================
-## 1. Various routine block that comply to user command
-## 2. User command example; start, stop, restart ...
-## ==========================================================
-
 defaultLog="GYMPB0107I Application name is missing / incorrect."
 
 ##
@@ -127,8 +122,10 @@ killRoutineHelper() {
 	fi
 }
 
+##
 ## Usage: killPids <applicationName> <pidFile 1> <pidFile 2> ... <pidFile n>
 ## PID files are all in var/*
+##
 killPids() {
 	appName=${1}
 	

@@ -21,6 +21,8 @@ needKafka() {
 }
 
 ##
+## Prints Kafka status
+##
 isKafkaRunning() {
 	status=`isKafkaStarted`
 	if [ ${status} -eq 1 ]; then

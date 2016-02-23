@@ -1,9 +1,5 @@
 #!/bin/bash
 
-## ==========================================================
-## 1. Functions related to Kafka
-## ==========================================================
-
 ##
 ## Specifically checks for Kafka
 ##
@@ -12,7 +8,7 @@ isKafkaStarted() {
 }
 
 ##
-##
+## Entry function to start Kafka
 ##
 startKafka() {
 	status=`isPidValid "${KAFKA_APP_NAME}"`
@@ -27,7 +23,7 @@ startKafka() {
 }
 
 ##
-##
+## Entry function to stop Kafka
 ##
 stopKafka() {
 	log INFO "GYMPB0113I: Stopping ${KAFKA_READABLE}."

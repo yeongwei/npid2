@@ -1,9 +1,5 @@
 #!/bin/bash
 
-## ==================================================
-## 1. Common functions used by the script
-## ==================================================
-
 ##
 ## Component list delimited with space, easier to construct array
 ## In shutdown order

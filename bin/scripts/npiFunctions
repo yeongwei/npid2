@@ -1,9 +1,5 @@
 #!/bin/bash
 
-## ==========================================================
-## 1. Functions related to NPI
-## ==========================================================
-
 # check ulimit parameters
 check_ulimit_param() {
   parameter=$1
@@ -133,8 +129,7 @@ startNpi() {
 	fi
 
 	if [ ! -z ${COMPONENT} ];then
-	   JVM_OPT="${JVM_OPT} -Dnpi.component=${COMPONENT}"
-	   # COMPONENT_OPT="-component ${COMPONENT}"
+		COMPONENT_OPT="-component ${COMPONENT}"
 	fi
 
 	if [ ! -z ${JDBC_SERVICE} ];then
