@@ -1,5 +1,7 @@
 #!/bin/bash
 
+CURRENTUSER=`id -un`
+
 SCRIPT=$0
 # Routine below facilitates the full qualified paths
 if [ "`echo $0 | cut -c1`" = "." ]; then
